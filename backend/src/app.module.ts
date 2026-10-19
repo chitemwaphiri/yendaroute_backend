@@ -6,6 +6,8 @@ import { join } from 'path';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { FaresModule } from './fares/fares.module';
+import { TransportTypesModule } from './transport-types/transport-types.module';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -36,6 +38,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: 'YOUR_APP_SECRET',
       serviceId: 'backend',
     }),
+    FaresModule,
+    TransportTypesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
