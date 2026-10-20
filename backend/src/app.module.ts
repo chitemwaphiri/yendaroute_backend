@@ -8,6 +8,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FaresModule } from './fares/fares.module';
 import { TransportTypesModule } from './transport-types/transport-types.module';
+import { RoutesModule } from './routes/routes.module';
+import { SearchModule } from './search/search.module';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -38,8 +40,11 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: 'YOUR_APP_SECRET',
       serviceId: 'backend',
     }),
+
     FaresModule,
     TransportTypesModule,
+    RoutesModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService],
