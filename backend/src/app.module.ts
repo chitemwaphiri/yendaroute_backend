@@ -10,6 +10,7 @@ import { FaresModule } from './fares/fares.module';
 import { TransportTypesModule } from './transport-types/transport-types.module';
 import { RoutesModule } from './routes/routes.module';
 import { SearchModule } from './search/search.module';
+import { AuthModule } from './auth/auth.module';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -45,6 +46,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     TransportTypesModule,
     RoutesModule,
     SearchModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
