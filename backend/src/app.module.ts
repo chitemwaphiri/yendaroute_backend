@@ -11,6 +11,8 @@ import { TransportTypesModule } from './transport-types/transport-types.module';
 import { RoutesModule } from './routes/routes.module';
 import { SearchModule } from './search/search.module';
 import { AuthModule } from './auth/auth.module';
+import { BookingModule } from './booking/booking.module';
+import { StopsModule } from './stops/stops.module';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -47,6 +49,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     RoutesModule,
     SearchModule,
     AuthModule,
+    BookingModule,
+    StopsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
