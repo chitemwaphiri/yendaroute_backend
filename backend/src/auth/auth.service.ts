@@ -46,7 +46,7 @@ export class AuthService {
     return { message: 'Logged out successfully' };
   }
 
-  async me(userId: string) {
+  async me(userId: number) {
     const user = await this.users.findById(userId);
     if (!user) throw new UnauthorizedException();
     const { passwordHash, ...safe } = user;
@@ -54,12 +54,12 @@ export class AuthService {
   }
 
   private issueToken(user: {
-    id: string;
+    id: number;
     email: string;
     role: Role;
     fullName: string;
   }) {
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: String(user.id), email: user.email, role: user.role };
     return {
       accessToken: this.jwt.sign(payload),
       user: {
