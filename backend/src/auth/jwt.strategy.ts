@@ -19,6 +19,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (token && this.blacklist.has(token)) {
       throw new UnauthorizedException('Token has been logged out');
     }
-    return { id: payload.sub, email: payload.email, role: payload.role };
+    return { id: Number(payload.sub), email: payload.email, role: payload.role };
   }
 }
