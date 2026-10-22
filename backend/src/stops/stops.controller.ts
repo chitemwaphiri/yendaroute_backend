@@ -1,3 +1,4 @@
+
 import {
   Controller,
   Get,
@@ -10,7 +11,7 @@ import {
   ParseIntPipe,
   BadRequestException,
 } from '@nestjs/common';
-
+import { ApiBody } from '@nestjs/swagger';
 import { StopsService } from './stops.service';
 
 @Controller('stops')
@@ -18,6 +19,18 @@ export class StopsController {
   constructor(private readonly stopsService: StopsService) {}
 
   @Post()
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['name', 'location', 'routeId', 'stopOrder'],
+      properties: {
+        name: { type: 'string', example: 'Blantyre Bus Depot' },
+        location: { type: 'string', example: 'Blantyre' },
+        routeId: { type: 'number', example: 1 },
+        stopOrder: { type: 'number', example: 1 },
+      },
+    },
+  })
   createStop(
     @Body()
     data: {
@@ -51,6 +64,17 @@ export class StopsController {
   }
 
   @Patch(':id')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', example: 'Limbe Bus Stop' },
+        location: { type: 'string', example: 'Limbe' },
+        routeId: { type: 'number', example: 1 },
+        stopOrder: { type: 'number', example: 2 },
+      },
+    },
+  })
   updateStop(
     @Param('id', ParseIntPipe) id: number,
     @Body()

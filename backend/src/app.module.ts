@@ -20,7 +20,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: join(process.cwd(), '..', '.env'),
+      envFilePath: join(process.cwd(), '.env'),
     }),
 
     TypeOrmModule.forRootAsync({
