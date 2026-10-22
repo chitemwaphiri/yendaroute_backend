@@ -5,6 +5,7 @@ import { Stop } from '../stops/entities/stop.entity';
 import { Route } from '../routes/entities/route.entity';
 import { RouteStop } from '../routes/entities/route-stop.entity';
 import { Booking, BookingStatus } from '../booking/entities/booking.entity';
+import { Schedule } from '../schedules/entities/schedule.entity'; // <-- NEW IMPORT
 
 @Injectable()
 export class SearchService {
@@ -17,6 +18,8 @@ export class SearchService {
     private readonly routeStopRepository: Repository<RouteStop>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Schedule) // <-- NEW REPOSITORY
+    private readonly scheduleRepository: Repository<Schedule>,
   ) {}
 
   async searchByCityNames(from: string, to: string, date?: string) {

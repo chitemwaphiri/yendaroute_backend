@@ -9,9 +9,8 @@ import { SearchModule } from './search/search.module';
 import { StopsModule } from './stops/stops.module';
 import { BookingModule } from './booking/booking.module';
 import { TransportTypesModule } from './transport-types/transport-types.module';
+import { SchedulesModule } from './schedules/schedules.module'; // <-- NEW IMPORT
 
-// This is the missing piece for your group's monitoring setup. 
-// If you have a specific file for this (like observe.module.ts), import it there instead.
 export const ObserveInstrument = {
   instanceDecorator: (instance: unknown) => instance,
 };
@@ -29,7 +28,7 @@ export const ObserveInstrument = {
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
       autoLoadEntities: true,
-      synchronize: true, 
+      synchronize: true,
     }),
     AuthModule,
     RoutesModule,
@@ -37,6 +36,7 @@ export const ObserveInstrument = {
     StopsModule,
     BookingModule,
     TransportTypesModule,
+    SchedulesModule, // <-- NEW MODULE ADDED
   ],
 })
 export class AppModule {}
