@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { Stop } from '../stops/entities/stop.entity';
 import { Route } from '../routes/entities/route.entity';
-import { RouteStop } from '../routes/entities/route-stop.entity';
+import { Schedule } from '../schedules/entities/schedule.entity';
 import { Booking, BookingStatus } from '../booking/entities/booking.entity';
-import { Schedule } from '../schedules/entities/schedule.entity'; // <-- NEW IMPORT
 
 @Injectable()
 export class SearchService {
@@ -14,82 +13,66 @@ export class SearchService {
     private readonly stopRepository: Repository<Stop>,
     @InjectRepository(Route)
     private readonly routeRepository: Repository<Route>,
-    @InjectRepository(RouteStop)
-    private readonly routeStopRepository: Repository<RouteStop>,
+    @InjectRepository(Schedule)
+    private readonly scheduleRepository: Repository<Schedule>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
-    @InjectRepository(Schedule) // <-- NEW REPOSITORY
-    private readonly scheduleRepository: Repository<Schedule>,
   ) {}
 
-  async searchByCityNames(from: string, to: string, date?: string) {
-    return this.routeRepository.find({
-      where: { isActive: true },
-      relations: {
-        originStop: true,
-        destinationStop: true,
-        routeStops: { stop: true },
-        transportType: true,
+  async searchTrips(from: string, to: string, date?: string) {
+    const originStop = await this.stopRepository.findOne({ where: { name: Like(`%${from}%`) } });
+    const destinationStop = await this.stopRepository.findOne({ where: { name: Like(`%${to}%`) } });
+
+    if (!originStop || !destinationStop) {
+      return { message: "Could not find one or both stops. Please check the names." };
+    }
+
+    const routes = await this.routeRepository.find({
+      where: { 
+        originStopId: originStop.id, 
+        destinationStopId: destinationStop.id,
+        isActive: true 
       },
+      relations: { transportType: true }
     });
-  }
 
-  async searchDestinations(query: string): Promise<Stop[]> {
-    return this.stopRepository
-      .createQueryBuilder('stop')
-      .where('stop.name ILIKE :q', { q: `%${query}%` })
-      .getMany();
-  }
+    if (routes.length === 0) {
+      return { message: "No routes found between these two locations." };
+    }
 
-  async nearbyTrip(lat: number, lng: number, destination?: string) {
-    return this.stopRepository
-      .createQueryBuilder('stop')
-      .where('stop.latitude IS NOT NULL AND stop.longitude IS NOT NULL')
-      .getMany();
-  }
-
-  async searchDepartures(
-    originStopId: number,
-    destinationStopId: number,
-    date?: string,
-  ) {
-    return this.routeRepository.find({
-      where: { originStopId, destinationStopId, isActive: true },
-      relations: {
-        originStop: true,
-        destinationStop: true,
-        routeStops: { stop: true },
-        transportType: true,
-      },
+    const routeIds = routes.map(r => r.id);
+    
+    const schedules = await this.scheduleRepository.find({
+      where: routeIds.map(id => ({ routeId: id, isActive: true })),
+      relations: { route: true },
+      order: { departureTime: 'ASC' }
     });
-  }
 
-  async searchRoutes(originStopId: number, destinationStopId: number) {
-    return this.routeRepository.find({
-      where: { originStopId, destinationStopId, isActive: true },
-      relations: {
-        originStop: true,
-        destinationStop: true,
-        routeStops: { stop: true },
-        transportType: true,
-      },
-    });
-  }
+    const results = [];
+    for (const schedule of schedules) {
+      const bookings = await this.bookingRepository.find({
+        where: { scheduleId: schedule.id, status: BookingStatus.CONFIRMED }
+      });
+      
+      const bookedSeats = bookings.reduce((total, b) => total + b.seats, 0);
+      const totalCapacity = 14; 
+      const availableSeats = totalCapacity - bookedSeats;
 
-  async findConnections(originStopId: number, destinationStopId: number) {
-    return this.routeRepository.find({
-      where: { isActive: true },
-      relations: {
-        originStop: true,
-        destinationStop: true,
-        routeStops: { stop: true },
-      },
-    });
-  }
+      const route = routes.find(r => r.id === schedule.routeId);
 
-  async countConfirmedBookings(): Promise<number> {
-    return this.bookingRepository.count({
-      where: { status: BookingStatus.CONFIRMED },
-    });
+      if (route) {
+        results.push({
+          routeName: route!.name,               // Added !
+          description: route!.description,      // Added !
+          transportType: route!.transportType?.name, // Added !
+          departureTime: schedule.departureTime,
+          arrivalTime: schedule.arrivalTime,
+          price: schedule.price,
+          availableSeats: availableSeats > 0 ? availableSeats : 0,
+        });
+      }
+    }
+
+    return results;
   }
 }
