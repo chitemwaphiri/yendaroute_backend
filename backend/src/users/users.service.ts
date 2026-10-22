@@ -35,6 +35,11 @@ export class UsersService implements OnModuleInit {
     return this.users.find((u) => u.id === id);
   }
 
+  // Returns every user without the password hash (used by the admin endpoint).
+  async findAll() {
+    return this.users.map(({ passwordHash, ...safe }) => safe);
+  }
+
   async create(data: {
     email: string;
     fullName: string;
