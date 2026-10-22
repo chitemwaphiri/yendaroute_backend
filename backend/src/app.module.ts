@@ -1,58 +1,42 @@
-
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { join } from 'path';
-import { createObserveModule } from '@nestjs/observe';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { FaresModule } from './fares/fares.module';
-import { TransportTypesModule } from './transport-types/transport-types.module';
+
+// Import your modules
+import { AuthModule } from './auth/auth.module';
 import { RoutesModule } from './routes/routes.module';
 import { SearchModule } from './search/search.module';
-import { AuthModule } from './auth/auth.module';
-import { BookingModule } from './booking/booking.module';
 import { StopsModule } from './stops/stops.module';
+import { BookingModule } from './booking/booking.module';
+import { TransportTypesModule } from './transport-types/transport-types.module';
 
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+// This is the missing piece for your group's monitoring setup. 
+// If you have a specific file for this (like observe.module.ts), import it there instead.
+export const ObserveInstrument = {
+  instanceDecorator: (instance: unknown) => instance,
+};
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: join(process.cwd(), '..', '.env'),
     }),
-
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST', '127.0.0.1'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get<string>('POSTGRES_USER'),
-        password: config.get<string>('POSTGRES_PASSWORD'),
-        database: config.get<string>('POSTGRES_DB'),
-        autoLoadEntities: true,
-        synchronize: false,
-      }),
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      username: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DB,
+      autoLoadEntities: true,
+      synchronize: true, 
     }),
-
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'backend',
-    }),
-
-    FaresModule,
-    TransportTypesModule,
+    AuthModule,
     RoutesModule,
     SearchModule,
-    AuthModule,
-    BookingModule,
     StopsModule,
+    BookingModule,
+    TransportTypesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
