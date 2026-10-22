@@ -1,10 +1,8 @@
 
 import {
   Column,
-  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('fares')
@@ -26,10 +24,4 @@ export class Fare {
 
   @Column({ type: 'varchar', length: 3, default: 'MWK' })
   currency: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }
