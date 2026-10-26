@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { RouteStop } from '../../routes/entities/route-stop.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('stops')
 export class Stop {
@@ -9,15 +8,15 @@ export class Stop {
   @Column()
   name: string;
 
-  @Column({ type: 'float', nullable: true })
+  @Column('float')
   latitude: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column('float')
   longitude: number;
 
   @Column({ nullable: true })
-  city: string;
+  description?: string;
 
-  @OneToMany(() => RouteStop, (routeStop) => routeStop.stop)
-  routeStops: RouteStop[];
+  @Column({ default: true })
+  isActive: boolean;
 }

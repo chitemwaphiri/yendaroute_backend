@@ -1,65 +1,65 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Req,
-  UseGuards,
+import { 
+  Body, Controller, Get, Post, Req, UseGuards, Param, ParseIntPipe 
 } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { RequestAdminDto } from './dto/request-admin.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller('api/v1/auth')
 export class AuthController {
-  constructor(private auth: AuthService) {}
+  constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Register a new passenger account' })
-  @ApiResponse({ status: 201, description: 'Account created, token returned' })
-  @ApiResponse({ status: 400, description: 'Validation failed' })
-  @ApiResponse({ status: 409, description: 'Email already registered' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Post('login')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Log in and receive an access token' })
-  @ApiResponse({ status: 200, description: 'Token returned' })
-  @ApiResponse({ status: 401, description: 'Invalid email or password' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
   }
 
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @Post('logout')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Log out and invalidate the current token' })
-  @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  @ApiResponse({ status: 401, description: 'Missing or invalid token' })
   logout(@Req() req: any) {
+    // Extract the token from the header and blacklist it
     const token = req.headers.authorization.split(' ')[1];
     return this.auth.logout(token);
   }
 
+  @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @Get('me')
-  @ApiOperation({ summary: 'Get the currently authenticated user' })
-  @ApiResponse({ status: 200, description: 'Current user details' })
-  @ApiResponse({ status: 401, description: 'Missing or invalid token' })
   me(@Req() req: any) {
-    return this.auth.me(req.user.id);
+    return this.auth.me(req.user.userId);
   }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('request-admin')
+  requestAdmin(@Req() req: any, @Body() dto: RequestAdminDto) {
+    return this.auth.requestAdmin(req.user.userId, dto);
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Get('admin-requests')
+  getPendingRequests() {
+    return this.auth.getPendingRequests();
+  }
+
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Post('admin-requests/:id/approve')
+  approveRequest(@Param('id', ParseIntPipe) id: number) {
+    return this.auth.approveAdminRequest(id);
+  }
+
+  
 }

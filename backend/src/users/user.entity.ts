@@ -9,8 +9,8 @@ import { Role } from './role.enum';
 
 @Entity('users')
 export class UserEntity {
-  @PrimaryColumn('uuid')
-  id: string;
+  @PrimaryColumn()
+  id: number;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;

@@ -1,45 +1,51 @@
-
-import { join } from 'path';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-// Import your modules
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { RoutesModule } from './routes/routes.module';
-import { SearchModule } from './search/search.module';
 import { StopsModule } from './stops/stops.module';
-import { BookingModule } from './booking/booking.module';
-import { TransportTypesModule } from './transport-types/transport-types.module';
-import { SchedulesModule } from './schedules/schedules.module'; // <-- NEW IMPORT
-
-export const ObserveInstrument = {
-  instanceDecorator: (instance: unknown) => instance,
-};
+import { TransportModule } from './transport/transport.module';
+import { RoutesModule } from './routes/routes.module';
+import { FaresModule } from './fares/fares.module';
+import { SchedulesModule } from './schedules/schedules.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { SearchModule } from './search/search.module';
+import { UsersModule } from './users/users.module'; // <-- ADDED THIS
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: join(process.cwd(), '.env'),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT'),
+        username: config.get<string>('DB_USER'),
+        password: config.get<string>('DB_PASS'),
+        database: config.get<string>('DB_NAME'),
+        autoLoadEntities: true,
+        synchronize: true,
+        logging: ['error', 'warn'],
+        ssl: {
+          rejectUnauthorized: false, 
+        },
+      }),
     }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB,
-      autoLoadEntities: true,
-      synchronize: true,
-    }),
+
     AuthModule,
-    RoutesModule,
-    SearchModule,
     StopsModule,
-    BookingModule,
-    TransportTypesModule,
-    SchedulesModule, // <-- NEW MODULE ADDED
+    TransportModule,
+    RoutesModule,
+    FaresModule,
+    SchedulesModule,
+    BookingsModule,
+    SearchModule,
+    UsersModule, // <-- ADDED THIS
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -1,144 +1,73 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-
-export interface BusStop {
-  id: number;
-  name: string;
-  location: string;
-  routeId: number;
-  stopOrder: number;
-}
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Stop } from './entities/stop.entity';
+import { CreateStopDto } from './dto/create-stop.dto';
+import { UpdateStopDto } from './dto/update-stop.dto';
+import { QueryStopDto } from './dto/query-stop.dto';
 
 @Injectable()
 export class StopsService {
-  private stops: BusStop[] = [];
-  private nextId = 1;
+  constructor(@InjectRepository(Stop) private stops: Repository<Stop>) {}
 
-  create(data: {
-    name: string;
-    location: string;
-    routeId: number;
-    stopOrder: number;
-  }) {
-    if (
-      !data.name ||
-      !data.location ||
-      !Number.isInteger(data.routeId) ||
-      data.routeId <= 0 ||
-      !Number.isInteger(data.stopOrder) ||
-      data.stopOrder <= 0
-    ) {
-      throw new BadRequestException('Invalid bus stop information');
-    }
-
-    const existingStop = this.stops.find(
-      (stop) =>
-        stop.routeId === data.routeId &&
-        stop.stopOrder === data.stopOrder,
-    );
-
-    if (existingStop) {
-      throw new BadRequestException(
-        'Another stop already uses this position on the route',
-      );
-    }
-
-    const stop: BusStop = {
-      id: this.nextId++,
-      name: data.name,
-      location: data.location,
-      routeId: data.routeId,
-      stopOrder: data.stopOrder,
-    };
-
-    this.stops.push(stop);
-
-    return {
-      message: 'Bus stop created successfully',
-      stop,
-    };
+  async create(dto: CreateStopDto) {
+    const stop = this.stops.create(dto);
+    return this.stops.save(stop);
   }
 
-  findAll() {
-    return this.stops;
+  async findAll(q: QueryStopDto) {
+    const qb = this.stops.createQueryBuilder('s').where('s.isActive = true');
+
+    if (q.name) qb.andWhere('s.name ILIKE :n', { n: `%${q.name}%` });
+
+    qb.skip((q.page - 1) * q.limit)
+      .take(q.limit)
+      .orderBy('s.name', 'ASC');
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page: q.page, limit: q.limit };
   }
 
-  findOne(id: number) {
-    const stop = this.stops.find((item) => item.id === id);
-
-    if (!stop) {
-      throw new NotFoundException('Bus stop not found');
-    }
-
+  async findOne(id: number) {
+    const stop = await this.stops.findOne({ where: { id } });
+    if (!stop) throw new NotFoundException('Stop not found');
     return stop;
   }
 
-  findByRoute(routeId: number) {
+  async nearby(lat: number, lng: number, radius = 1000) {
+    // Uses PostGIS: `geography(ST_MakePoint(...))` distances are in metres
     return this.stops
-      .filter((stop) => stop.routeId === routeId)
-      .sort((a, b) => a.stopOrder - b.stopOrder);
+      .createQueryBuilder('s')
+      .where('s.isActive = true')
+      .andWhere(
+        `ST_DWithin(
+          geography(ST_MakePoint(s.longitude, s.latitude)),
+          geography(ST_MakePoint(:lng, :lat)),
+          :radius
+        )`,
+        { lng, lat, radius },
+      )
+      .orderBy(
+        `ST_Distance(
+          geography(ST_MakePoint(s.longitude, s.latitude)),
+          geography(ST_MakePoint(:lng, :lat))
+        )`,
+        'ASC',
+      )
+      .setParameters({ lng, lat })
+      .limit(20)
+      .getMany();
   }
 
-  update(
-    id: number,
-    data: Partial<{
-      name: string;
-      location: string;
-      routeId: number;
-      stopOrder: number;
-    }>,
-  ) {
-    const stop = this.findOne(id);
-
-    const updated = { ...stop, ...data };
-
-    if (
-      !updated.name ||
-      !updated.location ||
-      !Number.isInteger(updated.routeId) ||
-      updated.routeId <= 0 ||
-      !Number.isInteger(updated.stopOrder) ||
-      updated.stopOrder <= 0
-    ) {
-      throw new BadRequestException('Invalid bus stop information');
-    }
-
-    const duplicate = this.stops.find(
-      (item) =>
-        item.id !== id &&
-        item.routeId === updated.routeId &&
-        item.stopOrder === updated.stopOrder,
-    );
-
-    if (duplicate) {
-      throw new BadRequestException(
-        'Another stop already uses this position on the route',
-      );
-    }
-
-    Object.assign(stop, data);
-
-    return {
-      message: 'Bus stop updated successfully',
-      stop,
-    };
+  async update(id: number, dto: UpdateStopDto) {
+    await this.findOne(id);
+    await this.stops.update(id, dto);
+    return this.findOne(id);
   }
 
-  remove(id: number) {
-    const index = this.stops.findIndex((stop) => stop.id === id);
-
-    if (index === -1) {
-      throw new NotFoundException('Bus stop not found');
-    }
-
-    const deletedStop = this.stops.splice(index, 1)[0];
-
-    return {
-      message: 'Bus stop deleted successfully',
-      deletedStop,
-    };
+  async remove(id: number) {
+    const stop = await this.findOne(id);
+    await this.stops.remove(stop);
+    return { deleted: true, id };
   }
 }

@@ -1,4 +1,3 @@
-
 import {
   Body,
   Controller,
@@ -9,67 +8,62 @@ import {
   Patch,
   Post,
   Query,
-  UsePipes,
-  ValidationPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { FaresService } from './fares.service';
 import { CreateFareDto } from './dto/create-fare.dto';
 import { UpdateFareDto } from './dto/update-fare.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../auth/guards/admin.guard';
 
-@Controller('fares')
-@UsePipes(
-  new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }),
-)
+@ApiTags('Fares')
+@ApiBearerAuth('access-token') // <--- FIX
+@Controller('api/v1/fares')
 export class FaresController {
-  constructor(private readonly faresService: FaresService) {}
+  constructor(private readonly svc: FaresService) {}
 
   @Get()
   findByStops(
     @Query('originStopId', ParseIntPipe) originStopId: number,
     @Query('destinationStopId', ParseIntPipe) destinationStopId: number,
   ) {
-    return this.faresService.findByStops(
-      originStopId,
-      destinationStopId,
-    );
+    return this.svc.findByStops(originStopId, destinationStopId);
+  }
+
+  @Get('route/:routeId')
+  findByRoute(@Param('routeId', ParseIntPipe) routeId: number) {
+    return this.svc.findByRoute(routeId);
   }
 
   @Get('estimate')
   estimate(
     @Query('originStopId', ParseIntPipe) originStopId: number,
     @Query('destinationStopId', ParseIntPipe) destinationStopId: number,
+    @Query('routeId') routeId?: string,
   ) {
-    return this.faresService.estimate(
+    return this.svc.estimate(
       originStopId,
       destinationStopId,
+      routeId ? Number(routeId) : undefined,
     );
   }
 
-  @Get('route/:routeId')
-  findByRoute(@Param('routeId', ParseIntPipe) routeId: number) {
-    return this.faresService.findByRoute(routeId);
-  }
-
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
-  create(@Body() data: CreateFareDto) {
-    return this.faresService.create(data);
+  create(@Body() dto: CreateFareDto) {
+    return this.svc.create(dto);
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() data: UpdateFareDto,
-  ) {
-    return this.faresService.update(id, data);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateFareDto) {
+    return this.svc.update(id, dto);
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.faresService.remove(id);
-    return { message: 'Fare deleted successfully' };
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.remove(id);
   }
 }

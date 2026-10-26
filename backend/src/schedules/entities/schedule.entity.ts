@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Route } from '../../routes/entities/route.entity';
 
 @Entity('schedules')
@@ -6,25 +12,25 @@ export class Schedule {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Route, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'route_id' })
+  @ManyToOne(() => Route, { eager: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'routeId' })
   route: Route;
 
-  @Column({ name: 'route_id' })
+  @Column()
   routeId: number;
 
-  @Column({ type: 'timestamp' })
-  departureTime: Date;
+  @Column({ type: 'time' })
+  departureTime: string; // e.g., "08:30:00"
 
-  @Column({ type: 'timestamp' })
-  arrivalTime: Date;
+  @Column('varchar', { array: true })
+  daysOfWeek: string[]; // e.g., ["MON", "TUE", "WED"]
 
-  @Column({ type: 'float' })
-  price: number;
+  @Column('int')
+  seatCapacity: number;
+
+  @Column({ nullable: true })
+  vehicleInfo?: string;
 
   @Column({ default: true })
   isActive: boolean;
-
-  @CreateDateColumn()
-  createdAt: Date;
 }

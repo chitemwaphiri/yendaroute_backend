@@ -13,20 +13,20 @@ export class RouteStop {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'route_id' })
-  routeId: number;
-
-  @ManyToOne(() => Route, (route) => route.routeStops, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'route_id' })
+  @ManyToOne(() => Route, (r) => r.routeStops, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'routeId' })
   route: Route;
 
-  @Column({ name: 'stop_id' })
-  stopId: number;
+  @Column()
+  routeId: number;
 
-  @ManyToOne(() => Stop, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'stop_id' })
+  @ManyToOne(() => Stop, { eager: true })
+  @JoinColumn({ name: 'stopId' })
   stop: Stop;
 
-  @Column({ type: 'int', default: 0 })
+  @Column()
+  stopId: number;
+
+  @Column('int')
   sequence: number;
 }

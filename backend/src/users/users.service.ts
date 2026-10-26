@@ -1,60 +1,47 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
-import { Role } from './role.enum';
-
-export interface User {
-  id: number;
-  email: string;
-  fullName: string;
-  passwordHash: string;
-  role: Role;
-  isActive: boolean;
-}
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../auth/entities/user.entity';
 
 @Injectable()
-export class UsersService implements OnModuleInit {
-  // TEMPORARY: swap this array for database queries later.
-  private users: User[] = [];
-  private nextId = 1;
+export class UsersService {
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+  ) {}
 
-  // Seeds one admin so you can test protected endpoints.
-  async onModuleInit() {
-    await this.create({
-      email: 'admin@yendaroute.mw',
-      fullName: 'System Admin',
-      passwordHash: await bcrypt.hash('Admin@12345', 10),
-      role: Role.ADMIN,
+  async findAll() {
+    return this.usersRepository.find({
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+      order: { id: 'ASC' },
     });
   }
 
-  async findByEmail(email: string): Promise<User | undefined> {
-    return this.users.find((u) => u.email === email.toLowerCase());
-  }
+  async findOne(id: number) {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        phoneNumber: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
 
-  async findById(id: number): Promise<User | undefined> {
-    return this.users.find((u) => u.id === id);
-  }
-
-  // Returns every user without the password hash (used by the admin endpoint).
-  async findAll() {
-    return this.users.map(({ passwordHash, ...safe }) => safe);
-  }
-
-  async create(data: {
-    email: string;
-    fullName: string;
-    passwordHash: string;
-    role: Role;
-  }): Promise<User> {
-    const user: User = {
-      id: this.nextId++,
-      email: data.email.toLowerCase(),
-      fullName: data.fullName,
-      passwordHash: data.passwordHash,
-      role: data.role,
-      isActive: true,
-    };
-    this.users.push(user);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
     return user;
   }
 }

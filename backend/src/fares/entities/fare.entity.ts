@@ -1,35 +1,35 @@
-
 import {
-  Column,
-  CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
+import { Route } from '../../routes/entities/route.entity';
 
 @Entity('fares')
 export class Fare {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
+  @ManyToOne(() => Route, { eager: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'routeId' })
+  route: Route;
+
+  @Column()
   routeId: number;
 
-  @Column({ type: 'int' })
+  // Note: Keeping origin/destination here as well allows different fares 
+  // for different segments of the same route
+  @Column()
   originStopId: number;
 
-  @Column({ type: 'int' })
+  @Column()
   destinationStopId: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  amount: string;
+  @Column('decimal', { precision: 10, scale: 2 })
+  amount: number;
 
-  @Column({ type: 'varchar', length: 3, default: 'MWK' })
+  @Column({ default: 'MWK' })
   currency: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

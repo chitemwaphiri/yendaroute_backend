@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=host.docker.internal 
+      - DB_PORT=5433                 
+      - POSTGRES_USER=yendaroute_user
+      - POSTGRES_PASSWORD=infosystems265
+      - POSTGRES_DB=yendaroute
+      - JWT_SECRET=super_secret_key

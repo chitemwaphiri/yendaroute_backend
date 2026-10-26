@@ -1,32 +1,25 @@
-
-import {
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  MaxLength,
-  Min,
-} from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateFareDto {
-  @IsInt()
-  @Min(1)
+  @Type(() => Number)
+  @IsNumber()
   routeId: number;
 
-  @IsInt()
-  @Min(1)
+  @Type(() => Number)
+  @IsNumber()
   originStopId: number;
 
-  @IsInt()
-  @Min(1)
+  @Type(() => Number)
+  @IsNumber()
   destinationStopId: number;
 
-  @IsString()
-  @Matches(/^(?=.*[1-9])\d+(\.\d{1,2})?$/)
-  amount: string;
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  amount: number;
 
   @IsOptional()
   @IsString()
-  @Matches(/^[A-Z]{3}$/)
   currency?: string;
 }

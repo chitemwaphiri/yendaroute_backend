@@ -3,13 +3,14 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  OneToMany,
   JoinColumn,
+  OneToMany,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { RouteStop } from './route-stop.entity';
-import { TransportType } from '../../transport-types/entities/transport-type.entity';
 import { Stop } from '../../stops/entities/stop.entity';
+import { TransportType } from '../../transport/entities/transport-type.entity';
+import { RouteStop } from './route-stop.entity';
 
 @Entity('routes')
 export class Route {
@@ -20,35 +21,38 @@ export class Route {
   name: string;
 
   @Column({ nullable: true })
-  description: string;
+  description?: string;
 
-  @Column({ name: 'origin_stop_id', nullable: true })
-  originStopId: number;
-
-  @ManyToOne(() => Stop, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'origin_stop_id' })
+  @ManyToOne(() => Stop, { eager: true })
+  @JoinColumn({ name: 'originStopId' })
   originStop: Stop;
 
-  @Column({ name: 'destination_stop_id', nullable: true })
-  destinationStopId: number;
+  @Column()
+  originStopId: number;
 
-  @ManyToOne(() => Stop, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'destination_stop_id' })
+  @ManyToOne(() => Stop, { eager: true })
+  @JoinColumn({ name: 'destinationStopId' })
   destinationStop: Stop;
 
-  @Column({ name: 'transport_type_id', nullable: true })
-  transportTypeId: number;
+  @Column()
+  destinationStopId: number;
 
-  @ManyToOne(() => TransportType, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'transport_type_id' })
+  @ManyToOne(() => TransportType, { eager: true })
+  @JoinColumn({ name: 'transportTypeId' })
   transportType: TransportType;
+
+  @Column()
+  transportTypeId: number;
 
   @Column({ default: true })
   isActive: boolean;
 
+  @OneToMany(() => RouteStop, (rs) => rs.route, { cascade: true })
+  routeStops: RouteStop[];
+
   @CreateDateColumn()
   createdAt: Date;
 
-  @OneToMany(() => RouteStop, (routeStop) => routeStop.route, { cascade: true })
-  routeStops: RouteStop[];
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
