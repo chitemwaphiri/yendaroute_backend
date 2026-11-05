@@ -22,6 +22,9 @@ export class Schedule {
   @Column({ type: 'float' })
   price: number;
 
+  @Column({ type: 'int', default: 50 })
+  totalSeats: number;
+
   @Column({ default: true })
   isActive: boolean;
 

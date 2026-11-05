@@ -4,7 +4,7 @@ import { Repository, Like } from 'typeorm';
 import { Stop } from '../stops/entities/stop.entity';
 import { Route } from '../routes/entities/route.entity';
 import { Schedule } from '../schedules/entities/schedule.entity';
-import { Booking, BookingStatus } from '../booking/entities/booking.entity';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
 export class SearchService {
@@ -51,11 +51,11 @@ export class SearchService {
     const results = [];
     for (const schedule of schedules) {
       const bookings = await this.bookingRepository.find({
-        where: { scheduleId: schedule.id, status: BookingStatus.CONFIRMED }
+        where: { tripId: schedule.id, status: 'CONFIRMED' }
       });
       
-      const bookedSeats = bookings.reduce((total, b) => total + b.seats, 0);
-      const totalCapacity = 14; 
+      const bookedSeats = bookings.reduce((total, b) => total + b.seatNumbers.length, 0);
+      const totalCapacity = schedule.totalSeats; 
       const availableSeats = totalCapacity - bookedSeats;
 
       const route = routes.find(r => r.id === schedule.routeId);

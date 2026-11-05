@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -33,7 +32,7 @@ export class BookingController {
 
   @Post()
   @Roles(Role.PASSENGER)
-  @ApiOperation({ summary: 'Book specific seats (passenger from the token)' })
+  @ApiOperation({ summary: 'Book specific seats (passenger comes from the token)' })
   createBooking(
     @Req() req: { user: AuthUser },
     @Body() dto: CreateBookingDto,
@@ -41,35 +40,38 @@ export class BookingController {
     return this.bookingService.create(req.user, dto);
   }
 
-  @Get()
-  @ApiOperation({ summary: 'My bookings (admins see all)' })
-  getBookings(@Req() req: { user: AuthUser }) {
-    return this.bookingService.findAll(req.user);
+  @Get('options/trips')
+  @ApiOperation({ summary: 'Dropdown: upcoming trips as { id, label }' })
+  @ApiQuery({ name: 'date', required: false, example: '2026-12-15' })
+  tripOptions(@Query('date') date?: string) {
+    return this.bookingService.tripOptions(date);
+  }
+
+  @Get('options/stops')
+  @ApiOperation({ summary: 'Dropdown: stops as { id, label }' })
+  stopOptions() {
+    return this.bookingService.stopOptions();
   }
 
   @Get('availability')
-  @ApiOperation({ summary: 'Taken and free seats for a trip on a date' })
+  @ApiOperation({ summary: 'Taken and free seats for a trip' })
   @ApiQuery({ name: 'tripId', example: 1 })
-  @ApiQuery({ name: 'travelDate', example: '2026-11-25' })
-  checkAvailability(
-    @Query('tripId', ParseIntPipe) tripId: number,
-    @Query('travelDate') travelDate: string,
-  ) {
-    if (!travelDate) {
-      throw new BadRequestException('Travel date is required');
-    }
-    return this.bookingService.checkAvailability(tripId, travelDate);
+  checkAvailability(@Query('tripId', ParseIntPipe) tripId: number) {
+    return this.bookingService.checkAvailability(tripId);
   }
 
   @Get('passengers')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: 'Passenger count per trip on a date (admin only)' })
-  @ApiQuery({ name: 'travelDate', example: '2026-11-25' })
-  passengersByTrip(@Query('travelDate') travelDate: string) {
-    if (!travelDate) {
-      throw new BadRequestException('Travel date is required');
-    }
-    return this.bookingService.passengersByTrip(travelDate);
+  @ApiOperation({ summary: 'Passenger count for each trip (admin only)' })
+  @ApiQuery({ name: 'date', required: false, example: '2026-12-15' })
+  passengersByTrip(@Query('date') date?: string) {
+    return this.bookingService.passengersByTrip(date);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'My bookings (admins see all)' })
+  getBookings(@Req() req: { user: AuthUser }) {
+    return this.bookingService.findAll(req.user);
   }
 
   @Get(':id')
