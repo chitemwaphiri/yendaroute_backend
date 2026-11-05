@@ -1,4 +1,3 @@
-
 import { join } from 'path';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -30,6 +29,8 @@ export const ObserveInstrument = {
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
+      ssl:
+        process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
       autoLoadEntities: true,
       synchronize: true,
     }),
