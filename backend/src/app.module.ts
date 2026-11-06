@@ -10,7 +10,6 @@ import { RoutesModule } from './routes/routes.module';
 import { FaresModule } from './fares/fares.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { BookingsModule } from './bookings/bookings.module';
-import { SearchModule } from './search/search.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -44,7 +43,6 @@ import { UsersModule } from './users/users.module';
     FaresModule,
     SchedulesModule,
     BookingsModule,
-    SearchModule,
     UsersModule,
   ],
   controllers: [AppController],
