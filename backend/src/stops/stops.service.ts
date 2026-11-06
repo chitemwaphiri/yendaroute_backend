@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Stop } from './entities/stop.entity';
@@ -35,7 +35,21 @@ export class StopsService {
   }
 
   async nearby(lat: number, lng: number, radius = 1000) {
-    // Uses PostGIS: `geography(ST_MakePoint(...))` distances are in metres
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    if (!Number.isFinite(radius) || radius <= 0) {
+      throw new BadRequestException('radius must be a positive number of metres');
+    }
+
+    // Uses PostGIS geography distances in metres.
     return this.stops
       .createQueryBuilder('s')
       .where('s.isActive = true')
