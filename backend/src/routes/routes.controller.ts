@@ -10,7 +10,13 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery, ApiExcludeEndpoint } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiExcludeEndpoint,
+} from '@nestjs/swagger';
 import { RoutesService } from './routes.service';
 import { SchedulesService } from '../schedules/schedules.service';
 import { CreateRouteDto } from './dto/create-route.dto';
@@ -74,6 +80,12 @@ export class RoutesController {
     return this.svc.findConnections(originStopId, destinationStopId);
   }
 
+  // Keep this before @Get(':id') so "count" is not parsed as an ID.
+  @Get('count')
+  count() {
+    return this.svc.count();
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.svc.findOne(id);
@@ -92,8 +104,20 @@ export class RoutesController {
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateRouteDto) {
-    return this.svc.update(id, dto);
+  @ApiQuery({
+    name: 'nearbyStopId',
+    required: false,
+    type: Number,
+    description: 'Optional nearby stop ID to append as an intermediate stop',
+  })
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateRouteDto,
+    @Query('nearbyStopId') nearbyStopId?: string,
+  ) {
+    const parsedNearbyStopId =
+      nearbyStopId === undefined ? undefined : Number(nearbyStopId);
+    return this.svc.update(id, dto, parsedNearbyStopId);
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)
