@@ -39,6 +39,9 @@ export class Schedule {
   @Column({ type: 'int', nullable: true })
   driverId?: number;
 
+  @Column({ type: 'int', default: 50 })
+  totalSeats: number;
+
   @Column({ default: true })
   isActive: boolean;
 }

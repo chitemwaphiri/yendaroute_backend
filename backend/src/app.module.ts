@@ -11,7 +11,7 @@ import { FaresModule } from './fares/fares.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { SearchModule } from './search/search.module';
-import { UsersModule } from './users/users.module'; // <-- ADDED THIS
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -45,7 +45,7 @@ import { UsersModule } from './users/users.module'; // <-- ADDED THIS
     SchedulesModule,
     BookingsModule,
     SearchModule,
-    UsersModule, // <-- ADDED THIS
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
