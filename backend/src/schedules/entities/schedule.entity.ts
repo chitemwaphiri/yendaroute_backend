@@ -6,6 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Route } from '../../routes/entities/route.entity';
+import { User } from '../../auth/entities/user.entity';
 
 @Entity('schedules')
 export class Schedule {
@@ -20,16 +21,26 @@ export class Schedule {
   routeId: number;
 
   @Column({ type: 'time' })
-  departureTime: string; // e.g., "08:30:00"
+  departureTime: string;
 
   @Column('varchar', { array: true })
-  daysOfWeek: string[]; // e.g., ["MON", "TUE", "WED"]
+  daysOfWeek: string[];
 
   @Column('int')
   seatCapacity: number;
 
   @Column({ nullable: true })
   vehicleInfo?: string;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'driverId' })
+  driver?: User;
+
+  @Column({ type: 'int', nullable: true })
+  driverId?: number;
+
+  @Column({ type: 'int', default: 50 })
+  totalSeats: number;
 
   @Column({ default: true })
   isActive: boolean;

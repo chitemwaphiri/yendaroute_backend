@@ -23,12 +23,10 @@ export class RoutesService {
       throw new BadRequestException('Origin and destination must differ');
     }
 
-    // Create the route
     const route = await this.routes.save(
       this.routes.create({ ...dto, isActive: true }),
     );
 
-    // Seed the route_stops table (origin at sequence 1, destination at 2)
     await this.routeStops.save([
       this.routeStops.create({
         routeId: route.id,
@@ -75,6 +73,70 @@ export class RoutesService {
       where: { routeId: id },
       order: { sequence: 'ASC' },
     });
+  }
+
+  // Routes between two stops by ID (direct only)
+  async searchBetween(originStopId: number, destinationStopId: number) {
+    return this.routes.find({
+      where: { originStopId, destinationStopId, isActive: true },
+    });
+  }
+
+  // By city name — resolve names to stops, then reuse searchBetween
+  // (returns both the resolved stops and the routes)
+  async searchByCity(from: string, to: string) {
+    const originStop = await this.routes.manager
+      .createQueryBuilder()
+      .select('s')
+      .from('stops', 's')
+      .where('s.name ILIKE :name', { name: `%${from}%` })
+      .andWhere('s.isActive = true')
+      .getRawOne();
+
+    if (!originStop) throw new NotFoundException(`Origin '${from}' not found`);
+
+    const destStop = await this.routes.manager
+      .createQueryBuilder()
+      .select('s')
+      .from('stops', 's')
+      .where('s.name ILIKE :name', { name: `%${to}%` })
+      .andWhere('s.isActive = true')
+      .getRawOne();
+
+    if (!destStop) throw new NotFoundException(`Destination '${to}' not found`);
+
+    const routes = await this.searchBetween(originStop.id, destStop.id);
+    return { originStop, destinationStop: destStop, availableRoutes: routes };
+  }
+
+  // Multi-leg connections: origin → transfer → destination
+  async findConnections(originStopId: number, destinationStopId: number) {
+    const firstLegs = await this.routes.find({
+      where: { originStopId, isActive: true },
+    });
+    if (!firstLegs.length) return [];
+
+    const secondLegs = await this.routes.find({
+      where: { destinationStopId, isActive: true },
+    });
+    if (!secondLegs.length) return [];
+
+    const connections: any[] = [];
+    for (const leg1 of firstLegs) {
+      for (const leg2 of secondLegs) {
+        if (
+          leg1.destinationStopId === leg2.originStopId &&
+          leg1.id !== leg2.id
+        ) {
+          connections.push({
+            leg1,
+            transferStop: leg1.destinationStop,
+            leg2,
+          });
+        }
+      }
+    }
+    return connections;
   }
 
   async update(id: number, dto: UpdateRouteDto) {

@@ -11,7 +11,7 @@ import { FaresModule } from './fares/fares.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { SearchModule } from './search/search.module';
-import { UsersModule } from './users/users.module'; // <-- ADDED THIS
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -29,9 +29,11 @@ import { UsersModule } from './users/users.module'; // <-- ADDED THIS
         autoLoadEntities: true,
         synchronize: true,
         logging: ['error', 'warn'],
-        ssl: {
-          rejectUnauthorized: false, 
-        },
+        // SSL stays on (hosted database) unless DB_SSL=false is set, e.g. for a local Docker database
+        ssl:
+          config.get<string>('DB_SSL') === 'false'
+            ? false
+            : { rejectUnauthorized: false },
       }),
     }),
 
@@ -43,7 +45,7 @@ import { UsersModule } from './users/users.module'; // <-- ADDED THIS
     SchedulesModule,
     BookingsModule,
     SearchModule,
-    UsersModule, // <-- ADDED THIS
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -35,7 +35,6 @@ export class StopsService {
   }
 
   async nearby(lat: number, lng: number, radius = 1000) {
-    // Uses PostGIS: `geography(ST_MakePoint(...))` distances are in metres
     return this.stops
       .createQueryBuilder('s')
       .where('s.isActive = true')
@@ -57,6 +56,49 @@ export class StopsService {
       .setParameters({ lng, lat })
       .limit(20)
       .getMany();
+  }
+
+  // Typeahead — moved from SearchService.searchDestinations
+  async search(query: string) {
+    return this.stops
+      .createQueryBuilder('stop')
+      .where('stop.name ILIKE :query', { query: `%${query}%` })
+      .andWhere('stop.isActive = true')
+      .orderBy('stop.name', 'ASC')
+      .limit(10)
+      .getMany();
+  }
+
+  // Nearest stop + named destination + routes — moved from SearchService.nearbyTrip
+  async nearbyTrip(lat: number, lng: number, destination: string) {
+    const nearbyStops = await this.stops
+      .createQueryBuilder('stop')
+      .where('stop.isActive = true')
+      .orderBy(
+        `ST_Distance(
+          geography(ST_MakePoint(stop.longitude, stop.latitude)),
+          geography(ST_MakePoint(:lng, :lat))
+        )`,
+        'ASC',
+      )
+      .setParameters({ lng, lat })
+      .limit(1)
+      .getMany();
+
+    if (!nearbyStops.length) throw new NotFoundException('No nearby stops found');
+    const originStop = nearbyStops[0];
+
+    const destStop = await this.stops
+      .createQueryBuilder('stop')
+      .where('stop.name ILIKE :dest OR stop.id::text = :dest', {
+        dest: destination,
+      })
+      .andWhere('stop.isActive = true')
+      .getOne();
+
+    if (!destStop) throw new NotFoundException('Destination not found');
+
+    return { originStop, destinationStop: destStop };
   }
 
   async update(id: number, dto: UpdateStopDto) {
