@@ -57,8 +57,13 @@ export class Booking {
   @Column()
   destinationStopId: number;
 
+  // Number of seats (always equals seatNumbers.length)
   @Column('int')
   seats: number;
+
+  // The specific seats chosen, e.g. [5, 6]
+  @Column('int', { array: true, default: () => "'{}'" })
+  seatNumbers: number[];
 
   @Column('decimal', { precision: 10, scale: 2 })
   estimatedFare: number;

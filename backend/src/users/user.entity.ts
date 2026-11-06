@@ -1,35 +1,34 @@
-import {
-  Entity,
-  PrimaryColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Role } from './role.enum';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+
+export enum UserRole {
+  ADMIN = 'admin',
+  PASSENGER = 'passenger',
+  DRIVER = 'driver',
+}
 
 @Entity('users')
-export class UserEntity {
-  @PrimaryColumn()
+export class User {
+  @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
-  email: string;
-
-  @Column({ name: 'full_name', type: 'varchar', length: 255 })
+  @Column()
   fullName: string;
 
-  @Column({ name: 'password_hash', type: 'varchar', length: 255 })
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  phoneNumber: string;
+
+  @Column({ select: false })
   passwordHash: string;
 
-  @Column({ type: 'varchar', length: 30, default: Role.PASSENGER })
-  role: Role;
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.PASSENGER })
+  role: UserRole;
 
-  @Column({ name: 'is_active', type: 'boolean', default: true })
+  @Column({ default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
+  @CreateDateColumn()
   createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
-  updatedAt: Date;
 }

@@ -29,9 +29,11 @@ import { UsersModule } from './users/users.module'; // <-- ADDED THIS
         autoLoadEntities: true,
         synchronize: true,
         logging: ['error', 'warn'],
-        ssl: {
-          rejectUnauthorized: false, 
-        },
+        // SSL stays on (hosted database) unless DB_SSL=false is set, e.g. for a local Docker database
+        ssl:
+          config.get<string>('DB_SSL') === 'false'
+            ? false
+            : { rejectUnauthorized: false },
       }),
     }),
 

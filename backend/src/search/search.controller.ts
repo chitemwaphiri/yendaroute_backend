@@ -1,15 +1,17 @@
-import { Controller, Get, Query, ParseIntPipe, ParseFloatPipe } from '@nestjs/common';
-import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Query,
+  ParseIntPipe,
+  ParseFloatPipe,
+} from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiExcludeController } from '@nestjs/swagger';
 import { SearchService } from './search.service';
 
-@ApiTags('Search & Trip Planning')
+@ApiExcludeController() // <--- This hides the whole section from Swagger
 @Controller('api/v1')
 export class SearchController {
   constructor(private readonly svc: SearchService) {}
-
-  // ==========================================
-  // VISIBLE ENDPOINTS (For your presentation)
-  // ==========================================
 
   @Get('search/by-city')
   searchByCity(
@@ -42,10 +44,6 @@ export class SearchController {
   ) {
     return this.svc.searchDepartures(originStopId, destinationStopId, date);
   }
-
-  // ==========================================
-  // HIDDEN ENDPOINTS (Still work, hidden from Swagger)
-  // ==========================================
 
   @ApiExcludeEndpoint()
   @Get('search/routes')

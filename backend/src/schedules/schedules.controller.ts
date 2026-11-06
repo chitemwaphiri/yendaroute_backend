@@ -10,7 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
@@ -18,7 +18,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 
 @ApiTags('Schedules')
-@ApiBearerAuth('access-token') // <--- FIX
+@ApiBearerAuth('access-token')
 @Controller('api/v1/schedules')
 export class SchedulesController {
   constructor(private readonly svc: SchedulesService) {}
@@ -26,6 +26,19 @@ export class SchedulesController {
   @Get()
   findAll(@Query('routeId') routeId?: string) {
     return this.svc.findAll(routeId ? Number(routeId) : undefined);
+  }
+
+  @Get('departures')
+  @ApiOperation({ summary: 'Departures between two stops with seat availability and fare' })
+  @ApiQuery({ name: 'originStopId', example: 1 })
+  @ApiQuery({ name: 'destinationStopId', example: 2 })
+  @ApiQuery({ name: 'date', required: false, example: '2026-12-15' })
+  searchDepartures(
+    @Query('originStopId', ParseIntPipe) originStopId: number,
+    @Query('destinationStopId', ParseIntPipe) destinationStopId: number,
+    @Query('date') date?: string,
+  ) {
+    return this.svc.searchDepartures(originStopId, destinationStopId, date);
   }
 
   @Get(':id')

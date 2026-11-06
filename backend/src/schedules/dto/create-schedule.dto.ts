@@ -32,4 +32,9 @@ export class CreateScheduleDto {
   @IsOptional()
   @IsString()
   vehicleInfo?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  driverId?: number;
 }
