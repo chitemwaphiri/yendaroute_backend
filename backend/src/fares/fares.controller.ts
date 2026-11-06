@@ -10,60 +10,95 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
+
 import { FaresService } from './fares.service';
 import { CreateFareDto } from './dto/create-fare.dto';
 import { UpdateFareDto } from './dto/update-fare.dto';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../auth/guards/admin.guard';
 
 @ApiTags('Fares')
-@ApiBearerAuth('access-token') // <--- FIX
-@Controller('api/v1/fares')
+@ApiBearerAuth('access-token')
+@Controller('api/v1/routes/:routeId/fares')
 export class FaresController {
-  constructor(private readonly svc: FaresService) {}
+  constructor(private readonly faresService: FaresService) {}
 
+  // GET all fares for a route or filter by stops
   @Get()
-  findByStops(
-    @Query('originStopId', ParseIntPipe) originStopId: number,
-    @Query('destinationStopId', ParseIntPipe) destinationStopId: number,
+  @ApiOperation({
+    summary: 'Retrieve fares for a route',
+    description:
+      'Returns all fares for a route or filters by origin and destination stops.',
+  })
+  @ApiQuery({
+    name: 'originStopId',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'destinationStopId',
+    required: false,
+    type: Number,
+  })
+  findByRoute(
+    @Param('routeId', ParseIntPipe) routeId: number,
+    @Query('originStopId', new ParseIntPipe({ optional: true }))
+    originStopId?: number,
+    @Query('destinationStopId', new ParseIntPipe({ optional: true }))
+    destinationStopId?: number,
   ) {
-    return this.svc.findByStops(originStopId, destinationStopId);
-  }
-
-  @Get('route/:routeId')
-  findByRoute(@Param('routeId', ParseIntPipe) routeId: number) {
-    return this.svc.findByRoute(routeId);
-  }
-
-  @Get('estimate')
-  estimate(
-    @Query('originStopId', ParseIntPipe) originStopId: number,
-    @Query('destinationStopId', ParseIntPipe) destinationStopId: number,
-    @Query('routeId') routeId?: string,
-  ) {
-    return this.svc.estimate(
+    return this.faresService.findByRoute(
+      routeId,
       originStopId,
       destinationStopId,
-      routeId ? Number(routeId) : undefined,
     );
   }
 
+  // POST create a fare for a route (admin only)
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post()
-  create(@Body() dto: CreateFareDto) {
-    return this.svc.create(dto);
+  @ApiOperation({
+    summary: 'Create a fare for a route',
+  })
+  create(
+    @Param('routeId', ParseIntPipe) routeId: number,
+    @Body() dto: CreateFareDto,
+  ) {
+    return this.faresService.create(routeId, dto);
   }
 
+  // PATCH update a fare (admin only)
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateFareDto) {
-    return this.svc.update(id, dto);
+  @ApiOperation({
+    summary: 'Update a fare on a route',
+  })
+  update(
+    @Param('routeId', ParseIntPipe) routeId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateFareDto,
+  ) {
+    return this.faresService.update(routeId, id, dto);
   }
 
+  // DELETE remove a fare (admin only)
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.svc.remove(id);
+  @ApiOperation({
+    summary: 'Delete a fare from a route',
+  })
+  remove(
+    @Param('routeId', ParseIntPipe) routeId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.faresService.remove(routeId, id);
   }
 }
