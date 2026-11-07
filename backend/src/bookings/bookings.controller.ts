@@ -27,9 +27,9 @@ export class BookingsController {
     return this.svc.cancelBooking(id, req.user.userId);
   }
 
-  // Driver Manifest Endpoint
+  
   @UseGuards(DriverGuard) 
-  @Get('driver/manifest/:scheduleId')
+  @Get('driver/:scheduleId')
   getDriverManifest(
     @Param('scheduleId', ParseIntPipe) scheduleId: number,
     @Query('travelDate') travelDate: string,

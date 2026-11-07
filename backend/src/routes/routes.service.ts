@@ -52,7 +52,6 @@ export class RoutesService {
       .leftJoinAndSelect('routeStop.stop', 'stop')
       .where('route.isActive = true');
 
-<<<<<<< HEAD
     if (originStopId) qb.andWhere('route.originStopId = :originStopId', { originStopId });
     if (destinationStopId) qb.andWhere('route.destinationStopId = :destinationStopId', { destinationStopId });
 
@@ -62,22 +61,6 @@ export class RoutesService {
       formattedRoutes.push(await this.formatRouteResponse(route));
     }
     return formattedRoutes;
-=======
-           // The list returns summaries. Full details come from GET /routes/:id.
-       const [data, total] = await this.routes.findAndCount({
-         where,
-         skip: (page - 1) * limit,
-         take: limit,
-         order: { createdAt: 'DESC' },
-       });
-
-       return { data, total, page, limit };
-
-  }
-
-  async count() {
-    return { count: await this.routes.count() };
->>>>>>> 5d17364a22bba3771f26b2597ca089703f996fe9
   }
 
   async findOne(id: number) {
@@ -96,74 +79,6 @@ export class RoutesService {
       if (index === sortedStops.length - 1) return { "destination stop": { "name": rs.stop.name } };
       return { "in between stop": { "name": rs.stop.name } };
     });
-<<<<<<< HEAD
-=======
-    const fares = await this.fares.find({ where: { routeId: id } });
-    return this.buildOrderedStops(records, fares);
-  }
-    // Nearest stop to the driver + the next stops ahead on the route
-  async findUpcomingStops(
-    id: number,
-    lat: number,
-    lng: number,
-    limit = 3,
-    direction: 'forward' | 'reverse' = 'forward',
-  ) {
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      lat < -90 ||
-      lat > 90 ||
-      lng < -180 ||
-      lng > 180
-    ) {
-      throw new BadRequestException('Valid latitude and longitude are required');
-    }
-    if (direction !== 'forward' && direction !== 'reverse') {
-      throw new BadRequestException("direction must be 'forward' or 'reverse'");
-    }
-    if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
-      throw new BadRequestException('limit must be a whole number from 1 to 10');
-    }
-
-    const route = await this.routes.findOne({ where: { id } });
-    if (!route) throw new NotFoundException('Route not found');
-
-    const records = await this.routeStops.find({
-      where: { routeId: id },
-      order: { sequence: 'ASC' },
-    });
-    const ordered = (direction === 'reverse' ? [...records].reverse() : records)
-      .filter((record) => record.stop);
-    if (!ordered.length) throw new NotFoundException('Route has no stops');
-
-    const stops = ordered.map((record) => ({
-      id: record.stopId,
-      name: record.stop.name,
-      latitude: record.stop.latitude,
-      longitude: record.stop.longitude,
-      sequence: record.sequence,
-      distanceMeters: Math.round(
-        this.calculateDistanceKm([
-          [lng, lat],
-          [Number(record.stop.longitude), Number(record.stop.latitude)],
-        ]) * 1000,
-      ),
-    }));
-
-    let nearest = 0;
-    stops.forEach((stop, i) => {
-      if (stop.distanceMeters < stops[nearest].distanceMeters) nearest = i;
-    });
-
-    return {
-      routeId: id,
-      direction,
-      nearestStop: stops[nearest],
-      upcomingStops: stops.slice(nearest + 1, nearest + 1 + limit),
-    };
-  }
->>>>>>> 5d17364a22bba3771f26b2597ca089703f996fe9
 
     const rawFares = await this.fares.find({ 
       where: { routeId: route.id },
@@ -201,107 +116,4 @@ export class RoutesService {
     await this.routes.remove(route);
     return { deleted: true, id };
   }
-<<<<<<< HEAD
-=======
-
-  private async enrich(route: Route) {
-    const records = await this.routeStops.find({
-      where: { routeId: route.id },
-      order: { sequence: 'ASC' },
-    });
-    const fares = await this.fares.find({ where: { routeId: route.id } });
-    const stops = this.buildOrderedStops(records, fares);
-    const coordinates: [number, number][] = stops
-      .filter((item) => item.stop)
-      .map(
-        (item) =>
-          [
-            Number(item.stop.longitude),
-            Number(item.stop.latitude),
-          ] as [number, number],
-      );
-    const geometry: GeoJsonLineString = {
-      type: 'LineString',
-      coordinates,
-    };
-    const distanceKm = this.calculateDistanceKm(coordinates);
-
-             return {
-      ...route,
-      stops,
-      geojson: {
-        type: 'FeatureCollection',
-        features: [
-          {
-            type: 'Feature',
-            geometry,
-            properties: { routeId: route.id, name: route.name },
-          },
-          ...stops
-            .filter((item) => item.stop)
-            .map((item) => ({
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: [
-                  Number(item.stop.longitude),
-                  Number(item.stop.latitude),
-                ],
-              },
-              properties: {
-                stopId: item.stop.id,
-                name: item.stop.name,
-                sequence: item.sequence,
-              },
-            })),
-        ],
-      },
-      distanceKm: Number(distanceKm.toFixed(2)),
-      distanceUnit: 'km',
-      fares,
-    };
-  
-  }
-
-  private buildOrderedStops(records: RouteStop[], fares: Fare[]) {
-    return records.map((record, index) => {
-      const previous = records[index - 1];
-      const fareFromPrevious = previous
-        ? fares.find(
-            (fare) =>
-              fare.originStopId === previous.stopId &&
-              fare.destinationStopId === record.stopId,
-          ) ?? null
-        : null;
-      return {
-        sequence: record.sequence,
-        stop: record.stop,
-        fareFromPrevious,
-      };
-    });
-  }
-
-  /** Sum straight-line distances between consecutive stop coordinates (Haversine). */
-  private calculateDistanceKm(coordinates: [number, number][]) {
-    const earthRadiusKm = 6371.0088;
-    let total = 0;
-    for (let i = 1; i < coordinates.length; i++) {
-      const [lon1, lat1] = coordinates[i - 1];
-      const [lon2, lat2] = coordinates[i];
-      const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-      const dLat = toRadians(lat2 - lat1);
-      const dLon = toRadians(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(toRadians(lat1)) *
-          Math.cos(toRadians(lat2)) *
-          Math.sin(dLon / 2) ** 2;
-      total +=
-        2 *
-        earthRadiusKm *
-        Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-    return total;
-  }
->>>>>>> 5d17364a22bba3771f26b2597ca089703f996fe9
 }
