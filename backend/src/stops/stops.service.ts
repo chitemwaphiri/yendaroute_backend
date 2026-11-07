@@ -21,7 +21,7 @@ export class StopsService {
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page: q.page, limit: q.limit };
   }
-
+// this is my comment 
   async findOne(id: number) {
     const stop = await this.stops.findOne({ where: { id } });
     if (!stop) throw new NotFoundException('Stop not found');
