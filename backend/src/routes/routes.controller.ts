@@ -9,6 +9,8 @@ import {
   Post,
   Query,
   UseGuards,
+  DefaultValuePipe,
+  ParseFloatPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -94,6 +96,26 @@ export class RoutesController {
   @Get(':id/stops')
   findStops(@Param('id', ParseIntPipe) id: number) {
     return this.svc.findStops(id);
+  }
+    @Get(':id/stops/upcoming')
+  @ApiOperation({ summary: 'Nearest stop to the driver and the next stops ahead' })
+  @ApiQuery({ name: 'lat', example: -15.7861 })
+  @ApiQuery({ name: 'lng', example: 35.0058 })
+  @ApiQuery({ name: 'limit', required: false, example: 3 })
+  @ApiQuery({
+    name: 'direction',
+    required: false,
+    enum: ['forward', 'reverse'],
+    description: 'forward = origin to destination, reverse = destination to origin',
+  })
+  findUpcomingStops(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('lat', ParseFloatPipe) lat: number,
+    @Query('lng', ParseFloatPipe) lng: number,
+    @Query('limit', new DefaultValuePipe(3), ParseIntPipe) limit: number,
+    @Query('direction') direction: 'forward' | 'reverse' = 'forward',
+  ) {
+    return this.svc.findUpcomingStops(id, lat, lng, limit, direction);
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)

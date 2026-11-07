@@ -104,6 +104,68 @@ export class RoutesService {
     const fares = await this.fares.find({ where: { routeId: id } });
     return this.buildOrderedStops(records, fares);
   }
+    // Nearest stop to the driver + the next stops ahead on the route
+  async findUpcomingStops(
+    id: number,
+    lat: number,
+    lng: number,
+    limit = 3,
+    direction: 'forward' | 'reverse' = 'forward',
+  ) {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    if (direction !== 'forward' && direction !== 'reverse') {
+      throw new BadRequestException("direction must be 'forward' or 'reverse'");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
+      throw new BadRequestException('limit must be a whole number from 1 to 10');
+    }
+
+    const route = await this.routes.findOne({ where: { id } });
+    if (!route) throw new NotFoundException('Route not found');
+
+    const records = await this.routeStops.find({
+      where: { routeId: id },
+      order: { sequence: 'ASC' },
+    });
+    const ordered = (direction === 'reverse' ? [...records].reverse() : records)
+      .filter((record) => record.stop);
+    if (!ordered.length) throw new NotFoundException('Route has no stops');
+
+    const stops = ordered.map((record) => ({
+      id: record.stopId,
+      name: record.stop.name,
+      latitude: record.stop.latitude,
+      longitude: record.stop.longitude,
+      sequence: record.sequence,
+      distanceMeters: Math.round(
+        this.calculateDistanceKm([
+          [lng, lat],
+          [Number(record.stop.longitude), Number(record.stop.latitude)],
+        ]) * 1000,
+      ),
+    }));
+
+    let nearest = 0;
+    stops.forEach((stop, i) => {
+      if (stop.distanceMeters < stops[nearest].distanceMeters) nearest = i;
+    });
+
+    return {
+      routeId: id,
+      direction,
+      nearestStop: stops[nearest],
+      upcomingStops: stops.slice(nearest + 1, nearest + 1 + limit),
+    };
+  }
 
   // Routes between two stops by ID (direct only)
   async searchBetween(originStopId: number, destinationStopId: number) {
