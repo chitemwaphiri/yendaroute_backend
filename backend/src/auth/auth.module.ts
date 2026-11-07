@@ -6,13 +6,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from './entities/user.entity';
-import { AdminRequest } from './entities/admin-request.entity';
-import { TokenBlacklist } from './entities/token-blacklist.entity'; // <-- NEW
+import { TokenBlacklist } from './entities/token-blacklist.entity';
+import { RoleRequest } from './entities/role-request.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, AdminRequest, TokenBlacklist]), // <-- NEW
+    TypeOrmModule.forFeature([User, TokenBlacklist, RoleRequest]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

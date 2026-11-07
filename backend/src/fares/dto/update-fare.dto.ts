@@ -1,4 +1,14 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateFareDto } from './create-fare.dto';
+import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
-export class UpdateFareDto extends PartialType(CreateFareDto) {}
+export class UpdateFareDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  amount?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
+}

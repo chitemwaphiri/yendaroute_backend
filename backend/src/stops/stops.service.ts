@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Stop } from './entities/stop.entity';
@@ -11,19 +11,13 @@ export class StopsService {
   constructor(@InjectRepository(Stop) private stops: Repository<Stop>) {}
 
   async create(dto: CreateStopDto) {
-    const stop = this.stops.create(dto);
-    return this.stops.save(stop);
+    return this.stops.save(this.stops.create(dto));
   }
 
   async findAll(q: QueryStopDto) {
     const qb = this.stops.createQueryBuilder('s').where('s.isActive = true');
-
     if (q.name) qb.andWhere('s.name ILIKE :n', { n: `%${q.name}%` });
-
-    qb.skip((q.page - 1) * q.limit)
-      .take(q.limit)
-      .orderBy('s.name', 'ASC');
-
+    qb.skip((q.page - 1) * q.limit).take(q.limit).orderBy('s.name', 'ASC');
     const [data, total] = await qb.getManyAndCount();
     return { data, total, page: q.page, limit: q.limit };
   }
@@ -35,85 +29,20 @@ export class StopsService {
   }
 
   async nearby(lat: number, lng: number, radius = 1000) {
-    if (
-      !Number.isFinite(lat) ||
-      !Number.isFinite(lng) ||
-      lat < -90 ||
-      lat > 90 ||
-      lng < -180 ||
-      lng > 180
-    ) {
-      throw new BadRequestException('Valid latitude and longitude are required');
-    }
-    if (!Number.isFinite(radius) || radius <= 0) {
-      throw new BadRequestException('radius must be a positive number of metres');
-    }
-
-    // Uses PostGIS geography distances in metres.
     return this.stops
       .createQueryBuilder('s')
       .where('s.isActive = true')
       .andWhere(
-        `ST_DWithin(
-          geography(ST_MakePoint(s.longitude, s.latitude)),
-          geography(ST_MakePoint(:lng, :lat)),
-          :radius
-        )`,
+        `ST_DWithin(geography(ST_MakePoint(s.longitude, s.latitude)), geography(ST_MakePoint(:lng, :lat)), :radius)`,
         { lng, lat, radius },
       )
       .orderBy(
-        `ST_Distance(
-          geography(ST_MakePoint(s.longitude, s.latitude)),
-          geography(ST_MakePoint(:lng, :lat))
-        )`,
+        `ST_Distance(geography(ST_MakePoint(s.longitude, s.latitude)), geography(ST_MakePoint(:lng, :lat)))`,
         'ASC',
       )
       .setParameters({ lng, lat })
       .limit(20)
       .getMany();
-  }
-
-  // Typeahead — moved from SearchService.searchDestinations
-  async search(query: string) {
-    return this.stops
-      .createQueryBuilder('stop')
-      .where('stop.name ILIKE :query', { query: `%${query}%` })
-      .andWhere('stop.isActive = true')
-      .orderBy('stop.name', 'ASC')
-      .limit(10)
-      .getMany();
-  }
-
-  // Nearest stop + named destination + routes — moved from SearchService.nearbyTrip
-  async nearbyTrip(lat: number, lng: number, destination: string) {
-    const nearbyStops = await this.stops
-      .createQueryBuilder('stop')
-      .where('stop.isActive = true')
-      .orderBy(
-        `ST_Distance(
-          geography(ST_MakePoint(stop.longitude, stop.latitude)),
-          geography(ST_MakePoint(:lng, :lat))
-        )`,
-        'ASC',
-      )
-      .setParameters({ lng, lat })
-      .limit(1)
-      .getMany();
-
-    if (!nearbyStops.length) throw new NotFoundException('No nearby stops found');
-    const originStop = nearbyStops[0];
-
-    const destStop = await this.stops
-      .createQueryBuilder('stop')
-      .where('stop.name ILIKE :dest OR stop.id::text = :dest', {
-        dest: destination,
-      })
-      .andWhere('stop.isActive = true')
-      .getOne();
-
-    if (!destStop) throw new NotFoundException('Destination not found');
-
-    return { originStop, destinationStop: destStop };
   }
 
   async update(id: number, dto: UpdateStopDto) {

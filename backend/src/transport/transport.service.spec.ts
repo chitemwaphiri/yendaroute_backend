@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { TransportService } from './transport.service';
-import { TransportType } from './entities/transport-type.entity';
+import { TransportType } from './entities/vehicle.entity';
 
 const validDto = {
   name: 'Minibus',

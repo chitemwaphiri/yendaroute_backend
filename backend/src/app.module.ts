@@ -5,17 +5,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { StopsModule } from './stops/stops.module';
-import { TransportModule } from './transport/transport.module';
 import { RoutesModule } from './routes/routes.module';
 import { FaresModule } from './fares/fares.module';
+import { TransportModule } from './transport/transport.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { BookingsModule } from './bookings/bookings.module';
-import { UsersModule } from './users/users.module';
+import { UsersModule } from './users/users.module'; // <-- ADD THIS IMPORT
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
-
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -28,22 +27,16 @@ import { UsersModule } from './users/users.module';
         autoLoadEntities: true,
         synchronize: true,
         logging: ['error', 'warn'],
-        // SSL stays on (hosted database) unless DB_SSL=false is set, e.g. for a local Docker database
-        ssl:
-          config.get<string>('DB_SSL') === 'false'
-            ? false
-            : { rejectUnauthorized: false },
       }),
     }),
-
     AuthModule,
     StopsModule,
-    TransportModule,
     RoutesModule,
     FaresModule,
+    TransportModule,
     SchedulesModule,
     BookingsModule,
-    UsersModule,
+    UsersModule, // <-- ADD THIS TO THE ARRAY
   ],
   controllers: [AppController],
   providers: [AppService],

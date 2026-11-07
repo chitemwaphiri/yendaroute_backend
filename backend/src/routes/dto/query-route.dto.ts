@@ -1,4 +1,4 @@
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsOptional, Min } from 'class-validator';
 
 export class QueryRouteDto {
@@ -17,15 +17,15 @@ export class QueryRouteDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  transportTypeId?: number;
+  originStopId?: number;
 
   @IsOptional()
-  @Transform(({ value }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @Type(() => Number)
+  @IsInt()
+  destinationStopId?: number;
+
+  @IsOptional()
+  @Type(() => Boolean)
   @IsBoolean()
   isActive?: boolean;
 }
