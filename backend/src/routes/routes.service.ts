@@ -73,15 +73,16 @@ export class RoutesService {
     if (q.transportTypeId) where.transportTypeId = q.transportTypeId;
     if (q.isActive !== undefined) where.isActive = q.isActive;
 
-    const [routes, total] = await this.routes.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+           // The list returns summaries. Full details come from GET /routes/:id.
+       const [data, total] = await this.routes.findAndCount({
+         where,
+         skip: (page - 1) * limit,
+         take: limit,
+         order: { createdAt: 'DESC' },
+       });
 
-    const data = await Promise.all(routes.map((route) => this.enrich(route)));
-    return { data, total, count: total, page, limit };
+       return { data, total, page, limit };
+
   }
 
   async count() {
@@ -336,19 +337,41 @@ export class RoutesService {
     };
     const distanceKm = this.calculateDistanceKm(coordinates);
 
-    return {
+             return {
       ...route,
       stops,
-      geometry,
       geojson: {
-        type: 'Feature',
-        geometry,
-        properties: { routeId: route.id, name: route.name, distanceKm },
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry,
+            properties: { routeId: route.id, name: route.name },
+          },
+          ...stops
+            .filter((item) => item.stop)
+            .map((item) => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [
+                  Number(item.stop.longitude),
+                  Number(item.stop.latitude),
+                ],
+              },
+              properties: {
+                stopId: item.stop.id,
+                name: item.stop.name,
+                sequence: item.sequence,
+              },
+            })),
+        ],
       },
       distanceKm: Number(distanceKm.toFixed(2)),
       distanceUnit: 'km',
       fares,
     };
+  
   }
 
   private buildOrderedStops(records: RouteStop[], fares: Fare[]) {
@@ -362,7 +385,6 @@ export class RoutesService {
           ) ?? null
         : null;
       return {
-        id: record.stopId,
         sequence: record.sequence,
         stop: record.stop,
         fareFromPrevious,
