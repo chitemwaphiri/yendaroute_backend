@@ -73,15 +73,16 @@ export class RoutesService {
     if (q.transportTypeId) where.transportTypeId = q.transportTypeId;
     if (q.isActive !== undefined) where.isActive = q.isActive;
 
-    const [routes, total] = await this.routes.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
+           // The list returns summaries. Full details come from GET /routes/:id.
+       const [data, total] = await this.routes.findAndCount({
+         where,
+         skip: (page - 1) * limit,
+         take: limit,
+         order: { createdAt: 'DESC' },
+       });
 
-    const data = await Promise.all(routes.map((route) => this.enrich(route)));
-    return { data, total, count: total, page, limit };
+       return { data, total, page, limit };
+
   }
 
   async count() {
@@ -103,6 +104,68 @@ export class RoutesService {
     });
     const fares = await this.fares.find({ where: { routeId: id } });
     return this.buildOrderedStops(records, fares);
+  }
+    // Nearest stop to the driver + the next stops ahead on the route
+  async findUpcomingStops(
+    id: number,
+    lat: number,
+    lng: number,
+    limit = 3,
+    direction: 'forward' | 'reverse' = 'forward',
+  ) {
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      throw new BadRequestException('Valid latitude and longitude are required');
+    }
+    if (direction !== 'forward' && direction !== 'reverse') {
+      throw new BadRequestException("direction must be 'forward' or 'reverse'");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
+      throw new BadRequestException('limit must be a whole number from 1 to 10');
+    }
+
+    const route = await this.routes.findOne({ where: { id } });
+    if (!route) throw new NotFoundException('Route not found');
+
+    const records = await this.routeStops.find({
+      where: { routeId: id },
+      order: { sequence: 'ASC' },
+    });
+    const ordered = (direction === 'reverse' ? [...records].reverse() : records)
+      .filter((record) => record.stop);
+    if (!ordered.length) throw new NotFoundException('Route has no stops');
+
+    const stops = ordered.map((record) => ({
+      id: record.stopId,
+      name: record.stop.name,
+      latitude: record.stop.latitude,
+      longitude: record.stop.longitude,
+      sequence: record.sequence,
+      distanceMeters: Math.round(
+        this.calculateDistanceKm([
+          [lng, lat],
+          [Number(record.stop.longitude), Number(record.stop.latitude)],
+        ]) * 1000,
+      ),
+    }));
+
+    let nearest = 0;
+    stops.forEach((stop, i) => {
+      if (stop.distanceMeters < stops[nearest].distanceMeters) nearest = i;
+    });
+
+    return {
+      routeId: id,
+      direction,
+      nearestStop: stops[nearest],
+      upcomingStops: stops.slice(nearest + 1, nearest + 1 + limit),
+    };
   }
 
   // Routes between two stops by ID (direct only)
@@ -274,19 +337,41 @@ export class RoutesService {
     };
     const distanceKm = this.calculateDistanceKm(coordinates);
 
-    return {
+             return {
       ...route,
       stops,
-      geometry,
       geojson: {
-        type: 'Feature',
-        geometry,
-        properties: { routeId: route.id, name: route.name, distanceKm },
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry,
+            properties: { routeId: route.id, name: route.name },
+          },
+          ...stops
+            .filter((item) => item.stop)
+            .map((item) => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [
+                  Number(item.stop.longitude),
+                  Number(item.stop.latitude),
+                ],
+              },
+              properties: {
+                stopId: item.stop.id,
+                name: item.stop.name,
+                sequence: item.sequence,
+              },
+            })),
+        ],
       },
       distanceKm: Number(distanceKm.toFixed(2)),
       distanceUnit: 'km',
       fares,
     };
+  
   }
 
   private buildOrderedStops(records: RouteStop[], fares: Fare[]) {
@@ -300,7 +385,6 @@ export class RoutesService {
           ) ?? null
         : null;
       return {
-        id: record.stopId,
         sequence: record.sequence,
         stop: record.stop,
         fareFromPrevious,
