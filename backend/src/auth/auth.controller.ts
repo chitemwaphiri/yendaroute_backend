@@ -1,8 +1,11 @@
-import { Body, Controller, Get, Post, Req, UseGuards, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import {
+  Body, Controller, Get, Post, Req, UseGuards, Param, ParseIntPipe, Query,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiProperty } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RequestType } from './entities/role-request.entity';
 import { IsString } from 'class-validator';
@@ -22,33 +25,45 @@ class RequestDriverDto {
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  @Post('register') register(@Body() dto: RegisterDto) { return this.auth.register(dto); }
-  @Post('login') login(@Body() dto: LoginDto) { return this.auth.login(dto); }
+  @Post('register')
+  @ApiOperation({ summary: 'Sign up (name, email, password; phone optional)' })
+  register(@Body() dto: RegisterDto) {
+    return this.auth.register(dto);
+  }
 
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Post('logout')
-  logout(@Req() req: any) {
-    return this.auth.logout(req.headers.authorization.split(' ')[1]);
+  @Post('login')
+  @ApiOperation({ summary: 'Log in and receive access and refresh tokens' })
+  login(@Body() dto: LoginDto) {
+    return this.auth.login(dto);
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Swap a refresh token for fresh tokens' })
+  refresh(@Body() dto: RefreshDto) {
+    return this.auth.refresh(dto.refreshToken);
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  @Get('me')
-  me(@Req() req: any) { return this.auth.me(req.user.userId); }
+  @Post('logout')
+  @ApiOperation({ summary: 'Log out: cancels the access and refresh tokens' })
+  logout(@Req() req: any) {
+    const token = req.headers.authorization.split(' ')[1];
+    return this.auth.logout(Number(req.user.userId), token);
+  }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('request-admin')
   requestAdmin(@Req() req: any, @Body() dto: RequestAdminDto) {
-    return this.auth.requestAdmin(req.user.userId, dto.reason);
+    return this.auth.requestAdmin(Number(req.user.userId), dto.reason);
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('request-driver')
   requestDriver(@Req() req: any, @Body() dto: RequestDriverDto) {
-    return this.auth.requestDriver(req.user.userId, dto.licenseId);
+    return this.auth.requestDriver(Number(req.user.userId), dto.licenseId);
   }
 
   @ApiBearerAuth('access-token')
@@ -62,6 +77,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('requests/:id/approve')
   approveRequest(@Param('id', ParseIntPipe) id: number) {
-    return this.auth.approveRequest(id); // <-- Fixed to 1 argument
+    return this.auth.approveRequest(id);
   }
 }
