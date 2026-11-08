@@ -1,10 +1,11 @@
-import { 
-  Body, Controller, Get, Post, Req, UseGuards, Param, ParseIntPipe 
+import {
+  Body, Controller, Get, Post, Req, UseGuards, Param, ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshDto } from './dto/refresh.dto';
 import { RequestAdminDto } from './dto/request-admin.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
@@ -15,29 +16,30 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
+  @ApiOperation({ summary: 'Sign up (name, email, password; phone optional)' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
   }
 
   @Post('login')
+  @ApiOperation({ summary: 'Log in and receive access and refresh tokens' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Swap a refresh token for fresh tokens' })
+  refresh(@Body() dto: RefreshDto) {
+    return this.auth.refresh(dto.refreshToken);
   }
 
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
   @Post('logout')
+  @ApiOperation({ summary: 'Log out: cancels the access and refresh tokens' })
   logout(@Req() req: any) {
-    // Extract the token from the header and blacklist it
     const token = req.headers.authorization.split(' ')[1];
-    return this.auth.logout(token);
-  }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  me(@Req() req: any) {
-    return this.auth.me(req.user.userId);
+    return this.auth.logout(Number(req.user.userId), token);
   }
 
   @ApiBearerAuth('access-token')
@@ -60,6 +62,4 @@ export class AuthController {
   approveRequest(@Param('id', ParseIntPipe) id: number) {
     return this.auth.approveAdminRequest(id);
   }
-
-  
 }

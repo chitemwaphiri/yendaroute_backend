@@ -7,19 +7,20 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from './entities/user.entity';
 import { AdminRequest } from './entities/admin-request.entity';
-import { TokenBlacklist } from './entities/token-blacklist.entity'; // <-- NEW
+import { TokenBlacklist } from './entities/token-blacklist.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, AdminRequest, TokenBlacklist]), // <-- NEW
+    TypeOrmModule.forFeature([User, AdminRequest, TokenBlacklist, RefreshToken]),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.get('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') },
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN') ?? '1h' },
       }),
     }),
   ],
