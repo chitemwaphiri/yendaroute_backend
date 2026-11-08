@@ -3,10 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StopsService } from './stops.service';
 import { StopsController } from './stops.controller';
 import { Stop } from './entities/stop.entity';
-import { RoutesModule } from '../routes/routes.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Stop]), RoutesModule],
+  imports: [TypeOrmModule.forFeature([Stop])],
   controllers: [StopsController],
   providers: [StopsService],
   exports: [StopsService, TypeOrmModule],

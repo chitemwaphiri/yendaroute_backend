@@ -26,6 +26,9 @@ export class User {
   @Column({ type: 'enum', enum: UserRole, default: UserRole.PASSENGER })
   role: UserRole;
 
+  @Column({ nullable: true })
+  licenseId: string;
+
   @Column({ default: true })
   isActive: boolean;
 

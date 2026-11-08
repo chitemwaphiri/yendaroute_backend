@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../auth/entities/user.entity';
+import { User, UserRole } from '../auth/entities/user.entity';
 import { PassengerProfile } from './entities/passenger-profile.entity';
 import { UpdatePassengerProfileDto } from './dto/update-passenger-profile.dto';
 
@@ -14,8 +14,12 @@ export class UsersService {
     private profiles: Repository<PassengerProfile>,
   ) {}
 
-  async findAll() {
+  // Add the role parameter here
+  async findAll(role?: UserRole) {
+    const where = role ? { role } : {};
+
     return this.usersRepository.find({
+      where,
       select: {
         id: true,
         fullName: true,

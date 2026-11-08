@@ -1,35 +1,24 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Route } from '../../routes/entities/route.entity';
+import { Stop } from '../../stops/entities/stop.entity';
 
 @Entity('fares')
 export class Fare {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn() id: number;
 
-  @ManyToOne(() => Route, { eager: true, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'routeId' })
+  @ManyToOne(() => Route, { onDelete: 'CASCADE' }) @JoinColumn({ name: 'routeId' })
   route: Route;
+  @Column() routeId: number;
 
-  @Column()
-  routeId: number;
+  @ManyToOne(() => Stop, { eager: true }) @JoinColumn({ name: 'originStopId' })
+  originStop: Stop;
+  @Column() originStopId: number;
 
-  // Note: Keeping origin/destination here as well allows different fares 
-  // for different segments of the same route
-  @Column()
-  originStopId: number;
+  @ManyToOne(() => Stop, { eager: true }) @JoinColumn({ name: 'destinationStopId' })
+  destinationStop: Stop;
+  @Column() destinationStopId: number;
 
-  @Column()
-  destinationStopId: number;
-
-  @Column('decimal', { precision: 10, scale: 2 })
-  amount: number;
-
-  @Column({ default: 'MWK' })
-  currency: string;
+  @Column('decimal', { precision: 10, scale: 2 }) amount: number;
+  
+  @Column({ default: 'MWK' }) currency: string;
 }

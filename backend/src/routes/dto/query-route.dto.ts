@@ -17,7 +17,12 @@ export class QueryRouteDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  transportTypeId?: number;
+  originStopId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  destinationStopId?: number;
 
   @IsOptional()
   @Type(() => Boolean)

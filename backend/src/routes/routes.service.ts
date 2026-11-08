@@ -1,152 +1,118 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Route } from './entities/route.entity';
 import { RouteStop } from './entities/route-stop.entity';
 import { CreateRouteDto } from './dto/create-route.dto';
 import { UpdateRouteDto } from './dto/update-route.dto';
-import { QueryRouteDto } from './dto/query-route.dto';
+import { Stop } from '../stops/entities/stop.entity';
+import { Fare } from '../fares/entities/fare.entity';
 
 @Injectable()
 export class RoutesService {
   constructor(
     @InjectRepository(Route) private routes: Repository<Route>,
     @InjectRepository(RouteStop) private routeStops: Repository<RouteStop>,
+    @InjectRepository(Stop) private stops: Repository<Stop>,
+    @InjectRepository(Fare) private fares: Repository<Fare>,
   ) {}
 
-  async create(dto: CreateRouteDto) {
-    if (dto.originStopId === dto.destinationStopId) {
-      throw new BadRequestException('Origin and destination must differ');
-    }
+  async create(dto: CreateRouteDto, user: any) {
+    const originStop = await this.stops.findOne({ where: { id: dto.originStopId } });
+    if (!originStop) throw new NotFoundException('Origin stop not found');
 
-    const route = await this.routes.save(
-      this.routes.create({ ...dto, isActive: true }),
-    );
+    const route = this.routes.create({
+      name: dto.name,
+      originStopId: dto.originStopId,
+      destinationStopId: dto.destinationStopId,
+      geometry: dto.geometry,
+      distance: dto.distance,
+    });
+    await this.routes.save(route);
 
-    await this.routeStops.save([
-      this.routeStops.create({
-        routeId: route.id,
-        stopId: dto.originStopId,
-        sequence: 1,
-      }),
-      this.routeStops.create({
-        routeId: route.id,
-        stopId: dto.destinationStopId,
-        sequence: 2,
-      }),
-    ]);
+    const sequence = [
+      { stopId: dto.originStopId, seq: 1 },
+      ...(dto.intermediateStopIds || []).map((id, index) => ({ stopId: id, seq: index + 2 })),
+      { stopId: dto.destinationStopId, seq: (dto.intermediateStopIds?.length || 0) + 2 }
+    ];
+
+    const routeStops = sequence.map(item => this.routeStops.create({
+      routeId: route.id,
+      stopId: item.stopId,
+      sequence: item.seq
+    }));
+    await this.routeStops.save(routeStops);
 
     return this.findOne(route.id);
   }
 
-  async findAll(q: QueryRouteDto) {
-    const page = Number(q.page ?? 1);
-    const limit = Number(q.limit ?? 20);
+  async findAll(originStopId?: number, destinationStopId?: number) {
+    const qb = this.routes.createQueryBuilder('route')
+      .leftJoinAndSelect('route.routeStops', 'routeStop')
+      .leftJoinAndSelect('routeStop.stop', 'stop')
+      .where('route.isActive = true');
 
-    const where: any = {};
-    if (q.transportTypeId) where.transportTypeId = q.transportTypeId;
-    if (q.isActive !== undefined) where.isActive = q.isActive;
+    if (originStopId) qb.andWhere('route.originStopId = :originStopId', { originStopId });
+    if (destinationStopId) qb.andWhere('route.destinationStopId = :destinationStopId', { destinationStopId });
 
-    const [data, total] = await this.routes.findAndCount({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-      order: { createdAt: 'DESC' },
-    });
-
-    return { data, total, page, limit };
+    const routes = await qb.getMany();
+    const formattedRoutes = [];
+    for (const route of routes) {
+      formattedRoutes.push(await this.formatRouteResponse(route));
+    }
+    return formattedRoutes;
   }
 
   async findOne(id: number) {
-    const route = await this.routes.findOne({ where: { id } });
+    const route = await this.routes.findOne({ 
+      where: { id },
+      relations: { routeStops: { stop: true } }
+    });
     if (!route) throw new NotFoundException('Route not found');
-    return route;
+    return this.formatRouteResponse(route);
   }
 
-  async findStops(id: number) {
-    await this.findOne(id);
-    return this.routeStops.find({
-      where: { routeId: id },
-      order: { sequence: 'ASC' },
+  private async formatRouteResponse(route: Route) {
+    const sortedStops = route.routeStops.sort((a, b) => a.sequence - b.sequence);
+    const routeStopsFormatted = sortedStops.map((rs, index) => {
+      if (index === 0) return { "origin stop": { "name": rs.stop.name } };
+      if (index === sortedStops.length - 1) return { "destination stop": { "name": rs.stop.name } };
+      return { "in between stop": { "name": rs.stop.name } };
     });
-  }
 
-  // Routes between two stops by ID (direct only)
-  async searchBetween(originStopId: number, destinationStopId: number) {
-    return this.routes.find({
-      where: { originStopId, destinationStopId, isActive: true },
+    const rawFares = await this.fares.find({ 
+      where: { routeId: route.id },
+      relations: { originStop: true, destinationStop: true } 
     });
-  }
 
-  // By city name — resolve names to stops, then reuse searchBetween
-  // (returns both the resolved stops and the routes)
-  async searchByCity(from: string, to: string) {
-    const originStop = await this.routes.manager
-      .createQueryBuilder()
-      .select('s')
-      .from('stops', 's')
-      .where('s.name ILIKE :name', { name: `%${from}%` })
-      .andWhere('s.isActive = true')
-      .getRawOne();
-
-    if (!originStop) throw new NotFoundException(`Origin '${from}' not found`);
-
-    const destStop = await this.routes.manager
-      .createQueryBuilder()
-      .select('s')
-      .from('stops', 's')
-      .where('s.name ILIKE :name', { name: `%${to}%` })
-      .andWhere('s.isActive = true')
-      .getRawOne();
-
-    if (!destStop) throw new NotFoundException(`Destination '${to}' not found`);
-
-    const routes = await this.searchBetween(originStop.id, destStop.id);
-    return { originStop, destinationStop: destStop, availableRoutes: routes };
-  }
-
-  // Multi-leg connections: origin → transfer → destination
-  async findConnections(originStopId: number, destinationStopId: number) {
-    const firstLegs = await this.routes.find({
-      where: { originStopId, isActive: true },
+    const faresFormatted = rawFares.map(fare => {
+      const routeLabel = `${fare.originStop.name.toLowerCase()} to ${fare.destinationStop.name.toLowerCase()}`;
+      return { "amount": fare.amount, [routeLabel]: fare.currency };
     });
-    if (!firstLegs.length) return [];
 
-    const secondLegs = await this.routes.find({
-      where: { destinationStopId, isActive: true },
-    });
-    if (!secondLegs.length) return [];
-
-    const connections: any[] = [];
-    for (const leg1 of firstLegs) {
-      for (const leg2 of secondLegs) {
-        if (
-          leg1.destinationStopId === leg2.originStopId &&
-          leg1.id !== leg2.id
-        ) {
-          connections.push({
-            leg1,
-            transferStop: leg1.destinationStop,
-            leg2,
-          });
-        }
-      }
-    }
-    return connections;
+    return {
+      id: route.id,
+      name: route.name,
+      originStop: { id: route.originStop.id, name: route.originStop.name },
+      destinationStop: { id: route.destinationStop.id, name: route.destinationStop.name },
+      geometry: route.geometry,
+      distance: route.distance,
+      routeStops: routeStopsFormatted,
+      fares: faresFormatted
+    };
   }
 
-  async update(id: number, dto: UpdateRouteDto) {
+  async update(id: number, dto: UpdateRouteDto, user: any) {
     await this.findOne(id);
     await this.routes.update(id, dto);
     return this.findOne(id);
   }
 
-  async remove(id: number) {
-    const route = await this.findOne(id);
+  async remove(id: number, user: any) {
+    // Fetch the raw entity before removing, so TypeORM doesn't get confused by the formatted response
+    const route = await this.routes.findOne({ where: { id } });
+    if (!route) throw new NotFoundException('Route not found');
+    
     await this.routes.remove(route);
     return { deleted: true, id };
   }

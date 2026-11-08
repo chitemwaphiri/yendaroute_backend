@@ -1,14 +1,18 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
-    ports:
-      - "3000:3000"
+  db:
+    image: postgis/postgis:15-3.4
+    container_name: yendaroute_central_db
+    restart: unless-stopped
     environment:
-      - DB_HOST=host.docker.internal 
-      - DB_PORT=5433                 
-      - POSTGRES_USER=yendaroute_user
-      - POSTGRES_PASSWORD=infosystems265
-      - POSTGRES_DB=yendaroute
-      - JWT_SECRET=super_secret_key
+      POSTGRES_USER: yendaroute_user
+      POSTGRES_PASSWORD: infosystems265
+      POSTGRES_DB: yendaroute
+    ports:
+      - "5433:5432" # Exposes the DB to the network on port 5433
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

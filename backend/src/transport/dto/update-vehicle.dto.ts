@@ -1,8 +1,8 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { IsBoolean, IsOptional } from 'class-validator';
-import { CreateTransportTypeDto } from './create-transport-type.dto';
+import { CreateVehicleDto } from './create-vehicle.dto';
 
-export class UpdateTransportTypeDto extends PartialType(CreateTransportTypeDto) {
+export class UpdateVehicleDto extends PartialType(CreateVehicleDto) {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;

@@ -1,25 +1,21 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateFareDto {
-  @Type(() => Number)
-  @IsNumber()
-  routeId: number;
-
-  @Type(() => Number)
-  @IsNumber()
+  @ApiProperty({ example: 1, description: 'Origin stop ID (must be on the route)' })
+  @Type(() => Number) @IsNumber()
   originStopId: number;
 
-  @Type(() => Number)
-  @IsNumber()
+  @ApiProperty({ example: 2, description: 'Destination stop ID (must be on the route)' })
+  @Type(() => Number) @IsNumber()
   destinationStopId: number;
 
-  @Type(() => Number)
-  @IsNumber()
-  @Min(0)
+  @ApiProperty({ example: 15000, description: 'Price amount' })
+  @Type(() => Number) @IsNumber() @Min(0)
   amount: number;
 
-  @IsOptional()
-  @IsString()
+  @ApiPropertyOptional({ example: 'MWK', description: 'Currency (defaults to MWK)' })
+  @IsOptional() @IsString()
   currency?: string;
 }

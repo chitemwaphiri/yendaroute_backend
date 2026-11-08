@@ -1,52 +1,40 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { TransportService } from './transport.service';
-import { CreateTransportTypeDto } from './dto/create-transport-type.dto';
-import { UpdateTransportTypeDto } from './dto/update-transport-type.dto';
+import { CreateVehicleDto } from './dto/create-vehicle.dto';
+import { UpdateVehicleDto } from './dto/update-vehicle.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AdminGuard } from '../auth/guards/admin.guard';
 
-@ApiTags('Transport Types')
-@ApiBearerAuth('access-token') // <--- FIX
-@Controller('api/v1/transport')
+@ApiTags('Transport Means')
+@Controller('api/v1/transport-means')
 export class TransportController {
   constructor(private readonly svc: TransportService) {}
 
   @Get()
-  findAll() {
-    return this.svc.findAll();
-  }
+  findAll() { return this.svc.findAll(); }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.svc.findOne(id);
+  findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
+
+  @Get('route/:routeId')
+  findByRoute(@Param('routeId', ParseIntPipe) routeId: number) {
+    return this.svc.findByRoute(routeId);
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateTransportTypeDto) {
-    return this.svc.create(dto);
-  }
+  create(@Body() dto: CreateVehicleDto) { return this.svc.create(dto); }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateTransportTypeDto) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateVehicleDto) {
     return this.svc.update(id, dto);
   }
 
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.svc.remove(id);
-  }
+  remove(@Param('id', ParseIntPipe) id: number) { return this.svc.remove(id); }
 }

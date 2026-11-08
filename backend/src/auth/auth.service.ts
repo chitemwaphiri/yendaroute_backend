@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -10,19 +6,18 @@ import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { User, UserRole } from './entities/user.entity';
-import { AdminRequest, RequestStatus } from './entities/admin-request.entity';
 import { TokenBlacklist } from './entities/token-blacklist.entity';
+import { RoleRequest, RequestType, RequestStatus } from './entities/role-request.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RequestAdminDto } from './dto/request-admin.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User) private users: Repository<User>,
-    @InjectRepository(AdminRequest) private adminRequests: Repository<AdminRequest>,
     @InjectRepository(TokenBlacklist) private blacklist: Repository<TokenBlacklist>,
+    @InjectRepository(RoleRequest) private roleRequests: Repository<RoleRequest>,
     @InjectRepository(RefreshToken) private refreshTokens: Repository<RefreshToken>,
     private jwt: JwtService,
     private config: ConfigService,
@@ -31,8 +26,8 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const existing = await this.users.findOne({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
-
     const passwordHash = await bcrypt.hash(dto.password, 10);
+
     const user = this.users.create({
       fullName: dto.name,
       email: dto.email,
@@ -50,11 +45,7 @@ export class AuthService {
       .addSelect('u.passwordHash')
       .where('u.email = :email', { email: dto.email })
       .getOne();
-
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
+    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
 
@@ -99,47 +90,59 @@ export class AuthService {
     return !!found;
   }
 
-  async requestAdmin(userId: number, dto: RequestAdminDto) {
-    const existing = await this.adminRequests.findOne({
-      where: { userId, status: RequestStatus.PENDING },
+  // --- Role request endpoints (from main) ---
+
+  async requestAdmin(userId: number, reason: string) {
+    const existing = await this.roleRequests.findOne({
+      where: { userId, type: RequestType.ADMIN, status: RequestStatus.PENDING },
     });
+    if (existing) throw new ConflictException('You already have a pending admin request');
 
-    if (existing) {
-      throw new ConflictException('You already have a pending admin request');
-    }
-
-    const request = this.adminRequests.create({
+    const request = this.roleRequests.create({
       userId,
-      reason: dto.reason,
+      type: RequestType.ADMIN,
+      reason,
       status: RequestStatus.PENDING,
     });
-
-    return this.adminRequests.save(request);
+    return this.roleRequests.save(request);
   }
 
-  async getPendingRequests() {
-    return this.adminRequests.find({
-      where: { status: RequestStatus.PENDING },
-      order: { createdAt: 'ASC' },
+  async requestDriver(userId: number, licenseId: string) {
+    const request = this.roleRequests.create({
+      userId,
+      type: RequestType.DRIVER,
+      licenseId,
+      status: RequestStatus.PENDING,
     });
+    return this.roleRequests.save(request);
   }
 
-  async approveAdminRequest(requestId: number) {
-    const request = await this.adminRequests.findOne({
-      where: { id: requestId, status: RequestStatus.PENDING },
-    });
+  async getPendingRequests(type?: RequestType) {
+    const where = type
+      ? { type, status: RequestStatus.PENDING }
+      : { status: RequestStatus.PENDING };
+    return this.roleRequests.find({ where, order: { createdAt: 'ASC' } });
+  }
 
-    if (!request) {
-      throw new ConflictException('Request not found or already processed');
+  async approveRequest(requestId: number) {
+    const request = await this.roleRequests.findOne({ where: { id: requestId } });
+    if (!request) throw new NotFoundException('Request not found');
+
+    if (request.type === RequestType.ADMIN) {
+      await this.users.update(request.userId, { role: UserRole.ADMIN });
+    } else if (request.type === RequestType.DRIVER) {
+      await this.users.update(request.userId, {
+        role: UserRole.DRIVER,
+        licenseId: request.licenseId,
+      });
     }
 
-    await this.users.update(request.userId, { role: UserRole.ADMIN });
-
     request.status = RequestStatus.APPROVED;
-    await this.adminRequests.save(request);
-
-    return { message: 'User promoted to Admin successfully', userId: request.userId };
+    await this.roleRequests.save(request);
+    return { message: 'Request approved successfully' };
   }
+
+  // --- Token helpers (yours) ---
 
   private hash(token: string) {
     return createHash('sha256').update(token).digest('hex');
