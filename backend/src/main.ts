@@ -2,15 +2,21 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import {
+  HttpErrorFilter,
+  validationExceptionFactory,
+} from './common/http-error.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+    app.useGlobalFilters(new HttpErrorFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: validationExceptionFactory,
       transformOptions: {
         enableImplicitConversion: true,
       },
