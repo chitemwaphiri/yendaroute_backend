@@ -20,6 +20,12 @@ export class StopsController {
     return this.svc.nearby(+lat, +lng, radius ? +radius : 1000);
   }
 
+  // NEW: Frontend Auto-complete endpoint
+  @Get('places/search')
+  searchPlaces(@Query('q') q: string, @Query('limit') limit?: string) {
+    return this.svc.findAll({ name: q || '', limit: limit ? +limit : 8, page: 1 });
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
 

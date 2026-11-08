@@ -16,6 +16,11 @@ export class Route {
   destinationStop: Stop;
   @Column() destinationStopId: number;
 
+  // NEW FIELDS FOR FRONTEND
+  @Column({ nullable: true }) companyName: string;
+  @Column({ nullable: true }) pickupLocation: string;
+  @Column({ default: false }) featured: boolean;
+
   @Column({ type: 'jsonb', nullable: true }) geometry: any;
   @Column('float', { nullable: true }) distance: number;
 
