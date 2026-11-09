@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { randomUUID, timingSafeEqual } from 'crypto';
+import { BookingsService } from '../bookings/bookings.service';
 
 import {
   Payment,
@@ -28,6 +29,7 @@ export class PaymentsService {
 
     @InjectRepository(Booking)
     private readonly bookingsRepository: Repository<Booking>,
+        private readonly bookingsService: BookingsService,
 
     private readonly notificationsService: NotificationsService,
 
@@ -56,23 +58,8 @@ export class PaymentsService {
     userId: number,
     dto: CreatePaymentDto,
   ) {
-    const booking = await this.bookingsRepository.findOne({
-      where: { reference },
-    });
-
-    if (!booking) {
-      throw new NotFoundException('Booking not found');
-    }
-
-    if (booking.userId !== userId) {
-      throw new ForbiddenException('This booking does not belong to you');
-    }
-
-    if (booking.status !== ('reviewed' as any)) {
-      throw new BadRequestException(
-        'Only reviewed bookings can be paid for',
-      );
-    }
+       // Checks the owner, that the booking is 'reviewed', and that the hold has not expired
+    const booking = await this.bookingsService.getForPayment(reference, userId);
 
     const existingPayment = await this.paymentsRepository.findOne({
       where: {
@@ -220,24 +207,17 @@ export class PaymentsService {
       };
     }
 
-    const booking = await this.bookingsRepository.findOne({
-      where: { reference: payment.bookingReference },
-    });
+       // Confirm the booking first. This refuses a booking that is cancelled or
+    // expired, and is safe to call twice.
+    await this.bookingsService.confirmPayment(payment.bookingReference);
 
-    if (!booking) {
-      throw new NotFoundException('Associated booking not found');
-    }
+    payment.status = PaymentStatus.SUCCESSFUL;
+    await this.paymentsRepository.save(payment);
 
-    if (booking.status !== ('reviewed' as any)) {
-      throw new ConflictException(
-        'Booking is not ready for payment confirmation',
-      );
-    }
-
-    // The Bookings module must provide confirmPayment(reference).
-    // Until then, we must not report a successful payment.
-    throw new ConflictException(
-      'Waiting for Bookings module payment confirmation integration',
-    );
+    return {
+      paymentId: payment.id,
+      status: payment.status,
+      message: 'Payment confirmed',
+    };
   }
 }

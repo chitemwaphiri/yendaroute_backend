@@ -304,7 +304,8 @@ export class BookingsService {
   }
 
   // Call when the payment succeeded. Safe to call twice.
-  async confirmPayment(reference: string) {
+    async confirmPayment(reference: string) {
+    await this.releaseExpiredHolds();
     const b = await this.bookings.findOne({ where: { reference } });
     if (!b) throw new NotFoundException('Booking not found');
     if (b.status === BookingStatus.CONFIRMED) return this.toDto(b);

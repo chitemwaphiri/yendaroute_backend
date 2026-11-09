@@ -8,11 +8,13 @@ import { Payment } from './entities/payment.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 
 import { NotificationsModule } from '../notifications/notifications.module';
+import { BookingsModule } from '../bookings/bookings.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment, Booking]),
     NotificationsModule,
+    BookingsModule,
   ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
