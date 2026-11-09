@@ -1,9 +1,6 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, ParseIntPipe, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
-import { CreateScheduleDto } from './dto/create-schedule.dto';
-import { UpdateScheduleDto } from './dto/update-schedule.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Schedules')
 @Controller('api/v1/schedules')
@@ -12,30 +9,32 @@ export class SchedulesController {
 
   @Get()
   findAll(
+    @Query('origin') origin?: string,
+    @Query('destination') destination?: string,
     @Query('routeId') routeId?: string,
-    @Query('from') from?: string,
-    @Query('to') to?: string
+    @Query('date') date?: string,
+    @Query('availableOnly') availableOnly?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.svc.findAll(routeId ? +routeId : undefined, from, to);
+    return this.svc.findAll({
+      origin,
+      destination,
+      routeId: routeId ? Number(routeId) : undefined,
+      date,
+      availableOnly: availableOnly === 'true',
+      page: page ? Number(page) : undefined,
+      pageSize: pageSize ? Number(pageSize) : undefined,
+    });
+  }
+
+  @Get(':id/seats')
+  getSeats(@Param('id', ParseIntPipe) id: number, @Query('date') date: string) {
+    return this.svc.getSeats(id, date);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Post()
-  create(@Body() dto: CreateScheduleDto) { return this.svc.create(dto); }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateScheduleDto) {
-    return this.svc.update(id, dto);
+  findOne(@Param('id', ParseIntPipe) id: number, @Query('date') date?: string) {
+    return this.svc.findOne(id, date);
   }
-
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) { return this.svc.remove(id); }
 }
