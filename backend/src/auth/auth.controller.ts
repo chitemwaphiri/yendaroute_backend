@@ -7,6 +7,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 import { RequestType } from './entities/role-request.entity';
 import { IsString } from 'class-validator';
 
@@ -67,15 +68,17 @@ export class AuthController {
   }
 
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('requests')
+  @ApiOperation({ summary: 'Admin: list pending admin/driver requests' })
   getPendingRequests(@Query('type') type?: RequestType) {
     return this.auth.getPendingRequests(type);
   }
 
   @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('requests/:id/approve')
+  @ApiOperation({ summary: 'Admin: approve an admin/driver request' })
   approveRequest(@Param('id', ParseIntPipe) id: number) {
     return this.auth.approveRequest(id);
   }

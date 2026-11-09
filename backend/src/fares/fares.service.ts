@@ -41,6 +41,53 @@ export class FaresService {
     return this.fares.save(fare);
   }
 
+  /**
+   * Returns the fare for travelling between two stops on a route.
+   * If no direct fare exists, adjacent segment fares are summed in route order.
+   * Public so booking and schedule services can reuse the same fare rules.
+   */
+  public async fareBetween(routeId: number, originStopId: number, destinationStopId: number): Promise<number | null> {
+    if (originStopId === destinationStopId) {
+      throw new BadRequestException('Origin and destination stops must be different');
+    }
+
+    const [origin, destination] = await Promise.all([
+      this.routeStops.findOne({ where: { routeId, stopId: originStopId } }),
+      this.routeStops.findOne({ where: { routeId, stopId: destinationStopId } }),
+    ]);
+
+    if (!origin || !destination || origin.sequence >= destination.sequence) {
+      throw new BadRequestException('Stops must belong to the route and origin must come before destination');
+    }
+
+    const direct = await this.fares.findOne({
+      where: { routeId, originStopId, destinationStopId },
+    });
+    if (direct) return Number(direct.amount);
+
+    const stops = await this.routeStops.find({
+      where: { routeId },
+      order: { sequence: 'ASC' },
+    });
+    const segmentStops = stops.filter((stop) =>
+      stop.sequence >= origin.sequence && stop.sequence <= destination.sequence,
+    );
+
+    let total = 0;
+    for (let index = 0; index < segmentStops.length - 1; index++) {
+      const segmentFare = await this.fares.findOne({
+        where: {
+          routeId,
+          originStopId: segmentStops[index].stopId,
+          destinationStopId: segmentStops[index + 1].stopId,
+        },
+      });
+      if (!segmentFare) return null;
+      total += Number(segmentFare.amount);
+    }
+    return total;
+  }
+
   async findByRoute(routeId: number) {
     return this.fares.find({ where: { routeId } });
   }
