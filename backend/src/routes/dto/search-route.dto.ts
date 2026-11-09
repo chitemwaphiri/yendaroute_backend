@@ -1,17 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 import { QueryRouteDto } from './query-route.dto';
 
+// originStopId and destinationStopId are inherited from QueryRouteDto.
 export class SearchRouteDto extends QueryRouteDto {
-  @ApiPropertyOptional({ example: 1, description: 'Route serves this boarding stop' })
-  @IsOptional() @Type(() => Number) @IsInt()
-  originStopId?: number;
-
-  @ApiPropertyOptional({ example: 5, description: 'Route serves this stop after the origin' })
-  @IsOptional() @Type(() => Number) @IsInt()
-  destinationStopId?: number;
-
   @ApiPropertyOptional({ example: 'Blantyre', description: 'Boarding stop name (partial match)' })
   @IsOptional() @IsString()
   from?: string;
