@@ -65,7 +65,7 @@ export class Booking {
 
   @Column({ default: 'MWK' }) currency: string;
 
-  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.DRAFT })
+  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.CONFIRMED })
   status: BookingStatus;
 
   @Column({ type: 'timestamptz', nullable: true }) holdExpiresAt: Date | null;

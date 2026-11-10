@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: infosystems265
       POSTGRES_DB: yendaroute
     ports:
-      - "5433:5432" # Exposes the DB to the network on port 5433
+      - "5433:5432" 
     volumes:
       - pgdata:/var/lib/postgresql/data
 

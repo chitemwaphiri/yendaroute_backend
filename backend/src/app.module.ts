@@ -26,24 +26,16 @@ import { NotificationsModule } from './notifications/notifications.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-
         host: config.get<string>('DB_HOST'),
-        port: Number(config.get<string>('DB_PORT') || 5432),
+        port: Number(config.get<string>('DB_PORT') || 5433),
         username: config.get<string>('DB_USER'),
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
+        
+        // REMOVED SSL FOR LOCAL DOCKER
 
-        // Enable secure connection to PostgreSQL
-        ssl: {
-          rejectUnauthorized: true,
-        },
-
-        // Automatically load entities from all modules
         autoLoadEntities: true,
-
-        // Automatically create/update tables during development
-        synchronize: false,
-
+        synchronize: true, // Set to true so Docker builds the tables
         logging: ['error', 'warn'],
       }),
     }),
