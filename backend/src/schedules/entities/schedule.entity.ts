@@ -23,6 +23,8 @@ export class Schedule {
   @Column() departureStopId: number;
 
   @Column({ type: 'time' }) departureTime: string;
+  @Column({ type: 'time', nullable: true }) arrivalAt: string | null;
+  @Column('decimal', { precision: 10, scale: 2, nullable: true }) fare: number | null;
   @Column('varchar', { array: true }) daysOfWeek: string[];
   
   @Column({ default: true }) isActive: boolean;

@@ -10,5 +10,6 @@ import { RouteStop } from '../routes/entities/route-stop.entity';
   imports: [TypeOrmModule.forFeature([Fare, Route, RouteStop])],
   controllers: [FaresController],
   providers: [FaresService],
+  exports: [FaresService],
 })
 export class FaresModule {}
