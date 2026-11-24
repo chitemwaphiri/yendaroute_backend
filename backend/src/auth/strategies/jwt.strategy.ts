@@ -1,3 +1,4 @@
+
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -19,8 +20,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: any, payload: any) {
+    // Only access tokens may authenticate protected endpoints.
+    if (payload.tokenType !== 'access') {
+      throw new UnauthorizedException('Access token required');
+    }
+
     const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
-    if (token && (await this.authService.isBlacklisted(token))) {
+
+    if (token && await this.authService.isBlacklisted(token)) {
       throw new UnauthorizedException('Token is blacklisted (logged out)');
     }
 

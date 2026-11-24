@@ -1,5 +1,6 @@
+
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
 
 @ApiTags('Schedules')
@@ -7,6 +8,7 @@ import { SchedulesService } from './schedules.service';
 export class SchedulesController {
   constructor(private readonly svc: SchedulesService) {}
 
+  @ApiExcludeEndpoint()
   @Get()
   findAll(
     @Query('origin') origin?: string,
