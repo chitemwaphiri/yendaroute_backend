@@ -17,8 +17,13 @@ export class Route {
   @Column() destinationStopId: number;
 
   // NEW FIELDS FOR FRONTEND
-  @Column({ nullable: true }) companyName: string;
-  @Column({ nullable: true }) pickupLocation: string;
+  @Column({ type: 'varchar', nullable: true }) companyName: string | null;
+  @Column({ type: 'varchar', nullable: true }) pickupLocation: string | null;
+  @Column({ type: 'varchar', nullable: true }) dropOffLocation: string | null;
+  @Column({ type: 'varchar', nullable: true }) roadName: string | null;
+  @Column({ type: 'varchar', nullable: true }) duration: string | null;
+  @Column({ default: 0 }) transfers: number;
+  @Column({ type: 'simple-array', nullable: true }) departureTimes: string[] | null;
   @Column({ default: false }) featured: boolean;
 
   @Column({ type: 'jsonb', nullable: true }) geometry: any;

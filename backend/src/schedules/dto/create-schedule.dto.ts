@@ -1,37 +1,93 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayNotEmpty, IsArray, IsInt, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsNumber,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class CreateScheduleDto {
-  @ApiProperty({ example: 1, description: 'The ID of the route' })
-  @Type(() => Number) @IsInt()
-  routeId: number;
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Canonical route ID, when available',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  routeId?: number;
 
-  @ApiProperty({ example: 1, description: 'The ID of the vehicle to be used' })
-  @Type(() => Number) @IsInt()
-  vehicleId: number;
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Canonical vehicle ID, when available',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  vehicleId?: number;
 
-  @ApiProperty({ example: 1, description: 'The ID of the stop where the journey begins' })
-  @Type(() => Number) @IsInt()
-  departureStopId: number;
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Canonical operator ID, when available',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  operatorId?: number;
 
-  @ApiProperty({ example: '08:30', description: 'Departure time in HH:mm format' })
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'departureTime must be HH:mm' })
+  @ApiProperty({ example: 'Lilongwe' })
+  @IsString()
+  origin: string;
+
+  @ApiProperty({ example: 'Blantyre' })
+  @IsString()
+  destination: string;
+
+  @ApiProperty({ example: '2026-11-23T07:00:00Z' })
+  @IsDateString()
   departureTime: string;
 
-  @ApiProperty({ example: '12:30', required: false, description: 'Arrival time in HH:mm format' })
-  @IsOptional()
-  @Matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: 'arrivalAt must be HH:mm' })
-  arrivalAt?: string;
+  @ApiProperty({ example: '2026-11-23T12:00:00Z' })
+  @IsDateString()
+  arrivalTime: string;
 
-  @ApiProperty({ example: 15000, required: false, description: 'Optional schedule-specific fare in MWK' })
-  @IsOptional()
+  @ApiProperty({ example: 75000, description: 'Fare in MWK' })
   @Type(() => Number)
   @IsNumber()
   @Min(0.01)
-  fare?: number;
+  fare: number;
 
-  @ApiProperty({ example: ['MON', 'TUE', 'WED', 'THU', 'FRI'], description: 'Days the schedule operates' })
-  @IsArray() @ArrayNotEmpty() @IsString({ each: true })
-  daysOfWeek: string[];
+  @ApiProperty({ example: 'MWK' })
+  @IsIn(['MWK'])
+  currency: string;
+
+  @ApiProperty({ example: 42 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(42)
+  totalSeats: number;
+
+  @ApiProperty({ example: 'MOVA Express' })
+  @IsString()
+  operatorName: string;
+
+  @ApiProperty({ example: 'M1' })
+  @IsString()
+  routeName: string;
+
+  @ApiProperty({ example: 'MOVA 1' })
+  @IsString()
+  vehicleName: string;
+
+  @ApiProperty({ example: 'Bus' })
+  @IsString()
+  transportMode: string;
 }

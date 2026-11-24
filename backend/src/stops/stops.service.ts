@@ -5,6 +5,7 @@ import { Stop } from './entities/stop.entity';
 import { CreateStopDto } from './dto/create-stop.dto';
 import { UpdateStopDto } from './dto/update-stop.dto';
 import { QueryStopDto } from './dto/query-stop.dto';
+import { paginated } from '../common/pagination';
 
 @Injectable()
 export class StopsService {
@@ -19,7 +20,18 @@ export class StopsService {
     if (q.name) qb.andWhere('s.name ILIKE :n', { n: `%${q.name}%` });
     qb.skip((q.page - 1) * q.limit).take(q.limit).orderBy('s.name', 'ASC');
     const [data, total] = await qb.getManyAndCount();
-    return { data, total, page: q.page, limit: q.limit };
+    return paginated(data, q.page, q.limit, total);
+  }
+
+  async search(name: string, limit = 8) {
+    const safeLimit = Math.min(100, Math.max(1, Number(limit) || 8));
+    return this.stops
+      .createQueryBuilder('stop')
+      .where('stop.isActive = true')
+      .andWhere('stop.name ILIKE :name', { name: `%${name}%` })
+      .orderBy('stop.name', 'ASC')
+      .limit(safeLimit)
+      .getMany();
   }
 // this is my comment 
   async findOne(id: number) {
@@ -54,6 +66,6 @@ export class StopsService {
   async remove(id: number) {
     const stop = await this.findOne(id);
     await this.stops.remove(stop);
-    return { deleted: true, id };
+    return undefined;
   }
 }

@@ -1,5 +1,16 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
@@ -9,24 +20,52 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 @ApiTags('Admin schedules')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, AdminGuard)
-@Controller('api/v1/admin/schedules')
+@Controller('api/v1/schedules')
 export class AdminSchedulesController {
   constructor(private readonly svc: SchedulesService) {}
 
-  @Get()
-  findAll() { return this.svc.findAdminAll(); }
+  @Get('admin/list')
+  findAll() {
+    return this.svc.findAdminAll();
+  }
 
   @Post()
-  create(@Body() dto: CreateScheduleDto) { return this.svc.create(dto); }
-
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) { return this.svc.findOne(id); }
+  @ApiBody({
+    type: CreateScheduleDto,
+    examples: {
+      contract: {
+        summary: 'Create a schedule',
+        value: {
+          origin: 'Lilongwe',
+          destination: 'Blantyre',
+          departureTime: '2026-11-23T07:00:00Z',
+          arrivalTime: '2026-11-23T12:00:00Z',
+          fare: 75000,
+          currency: 'MWK',
+          totalSeats: 42,
+          operatorName: 'MOVA Express',
+          routeName: 'M1',
+          vehicleName: 'MOVA 1',
+          transportMode: 'Bus',
+        },
+      },
+    },
+  })
+  create(@Body() dto: CreateScheduleDto) {
+    return this.svc.create(dto);
+  }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateScheduleDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateScheduleDto,
+  ) {
     return this.svc.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) { return this.svc.remove(id); }
+  @HttpCode(204)
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.svc.remove(id);
+  }
 }

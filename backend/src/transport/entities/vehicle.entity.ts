@@ -1,15 +1,19 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 
 @Entity('vehicles')
+@Index(['plateNumber'], { unique: true })
 export class Vehicle {
   @PrimaryGeneratedColumn() id: number;
+  @Column({ type: 'varchar', nullable: true }) name: string | null;
   @Column() plateNumber: string;
   @Column() vehicleType: string;
   @Column('int') capacity: number;
-  @Column({ nullable: true }) description: string;
+  get seatCapacity(): number { return this.capacity; }
+  get registrationNumber(): string { return this.plateNumber; }
+  @Column({ type: 'varchar', nullable: true }) description: string | null;
   @ManyToOne(() => User, { eager: true, nullable: true }) @JoinColumn({ name: 'driverId' })
-  driver: User;
-  @Column({ nullable: true }) driverId: number;
+  driver: User | null;
+  @Column({ nullable: true }) driverId: number | null;
   @Column({ default: true }) isActive: boolean;
 }

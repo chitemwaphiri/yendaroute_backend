@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
-// Query DTOs for lists should extend this, so page and pageSize are always accepted.
+// Query DTOs for lists should extend this to accept the common page/limit convention.
 export class PaginationQueryDto {
   @ApiPropertyOptional({ example: 1, default: 1 })
   @IsOptional()
@@ -18,34 +18,53 @@ export class PaginationQueryDto {
   @Min(1)
   @Max(100)
   pageSize?: number;
+
+  @ApiPropertyOptional({ example: 20, default: 20, maximum: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }
 
-export interface Paginated<T> {
-  items: T[];
+export interface PaginationMeta {
   page: number;
-  pageSize: number;
+  limit: number;
   total: number;
 }
 
-// Reads page and pageSize and gives skip/take for the database query.
+export interface Paginated<T> {
+  data: T[];
+  pagination: PaginationMeta;
+}
+
+// Reads the canonical limit or legacy pageSize and gives skip/take for the database query.
 export function pageParams(
-  q: { page?: number | string; pageSize?: number | string },
+  q: {
+    page?: number | string;
+    pageSize?: number | string;
+    limit?: number | string;
+  },
   defaultSize = 20,
   maxSize = 100,
 ) {
   const page = Math.max(1, Number(q.page ?? 1) || 1);
-  const pageSize = Math.min(
+  const limit = Math.min(
     maxSize,
-    Math.max(1, Number(q.pageSize ?? defaultSize) || defaultSize),
+    Math.max(1, Number(q.limit ?? q.pageSize ?? defaultSize) || defaultSize),
   );
-  return { page, pageSize, skip: (page - 1) * pageSize, take: pageSize };
+  return { page, limit, skip: (page - 1) * limit, take: limit };
 }
 
 export function paginated<T>(
   items: T[],
   page: number,
-  pageSize: number,
+  limit: number,
   total: number,
 ): Paginated<T> {
-  return { items, page, pageSize, total };
+  return {
+    data: items,
+    pagination: { page, limit, total },
+  };
 }

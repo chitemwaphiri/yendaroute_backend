@@ -1,29 +1,119 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsInt, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateRouteDto {
-  @ApiProperty({ example: 'Zomba to Mzuzu Express' })
-  @IsString() name: string;
+  @ApiProperty({ example: 'Lilongwe - Blantyre' })
+  @IsString()
+  @MinLength(2)
+  name: string;
 
-  @ApiProperty({ example: 1, description: 'ID of the starting stop' })
-  @Type(() => Number) @IsInt() originStopId: number;
+  @ApiProperty({
+    example: 1,
+    description: 'Canonical integer ID of the origin stop',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  originStopId: number;
 
-  @ApiProperty({ example: 5, description: 'ID of the ending stop' })
-  @Type(() => Number) @IsInt() destinationStopId: number;
+  @ApiProperty({
+    example: 2,
+    description: 'Canonical integer ID of the destination stop',
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  destinationStopId: number;
 
-  @ApiPropertyOptional({ example: [2, 3, 4], description: 'Array of in-between stop IDs in order' })
-  @IsOptional() @IsArray() intermediateStopIds?: number[];
+  // Frontend sends stop names as strings (e.g. "blantyre", "lilongwe")
+  @ApiPropertyOptional({
+    example: 'Blantyre',
+    description: 'Origin stop name (resolved to stop ID)',
+  })
+  @IsOptional()
+  @IsString()
+  origin?: string;
 
-  @ApiPropertyOptional({ example: 450000, description: 'Optional distance in meters' })
-  @IsOptional() @Type(() => Number) @IsNumber() distance?: number;
+  @ApiPropertyOptional({
+    example: 'Lilongwe',
+    description: 'Destination stop name (resolved to stop ID)',
+  })
+  @IsOptional()
+  @IsString()
+  destination?: string;
 
-  @ApiPropertyOptional({ example: 'YendaRoute Ltd' })
-  @IsOptional() @IsString() companyName?: string;
+  @ApiPropertyOptional({
+    example: ['Dedza'],
+    description: 'Intermediate stop names in travel order',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  intermediateStops?: string[];
 
-  @ApiPropertyOptional({ example: 'Zomba Main Terminal' })
-  @IsOptional() @IsString() pickupLocation?: string;
+  @ApiProperty({
+    example: [3],
+    description: 'Intermediate stop IDs in travel order',
+    type: [Number],
+  })
+  @IsArray()
+  @ArrayUnique()
+  @Type(() => Number)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  intermediateStopIds: number[];
 
-  @ApiPropertyOptional({ example: true })
-  @IsOptional() @IsBoolean() featured?: boolean;
+  @ApiPropertyOptional({
+    example: 312.5,
+    description: 'Distance in kilometers when available from route planning.',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  distance?: number;
+
+  @ApiProperty({ example: 'MOVA Express' })
+  @IsString()
+  companyName: string;
+
+  @ApiProperty({ example: 'Lilongwe Bus Depot' })
+  @IsString()
+  pickupLocation: string;
+
+  @ApiProperty({ example: false })
+  @IsBoolean()
+  featured: boolean;
+
+  @ApiProperty({ example: 'M1' }) @IsString() roadName: string;
+  @ApiProperty({ example: 'Wenela Bus Depot' })
+  @IsString()
+  dropOffLocation: string;
+  @ApiProperty({ example: ['07:00', '14:00'], type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  departureTimes: string[];
+  @ApiPropertyOptional({ example: '4h 30m' })
+  @IsOptional()
+  @IsString()
+  duration?: string;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  transfers?: number;
+  @ApiProperty({ example: true }) @IsBoolean() isActive: boolean;
 }

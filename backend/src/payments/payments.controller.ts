@@ -8,26 +8,19 @@ import {
   Headers,
   UseGuards,
   ParseUUIDPipe,
-  ValidationPipe,
 } from '@nestjs/common';
 
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiBody,
-} from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody } from '@nestjs/swagger';
 
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PassengerGuard } from '../auth/guards/passenger.guard';
 
 @ApiTags('Payments')
 @Controller()
 export class PaymentsController {
-  constructor(
-    private readonly paymentsService: PaymentsService,
-  ) {}
+  constructor(private readonly paymentsService: PaymentsService) {}
 
   @Get('payment-methods')
   @ApiOperation({
@@ -37,22 +30,27 @@ export class PaymentsController {
     return this.paymentsService.getPaymentMethods();
   }
 
-  @Post('bookings/:reference/payments')
-  @UseGuards(JwtAuthGuard)
+  @Post('api/v1/bookings/:reference/payment')
+  @UseGuards(JwtAuthGuard, PassengerGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({
-    summary: 'Create a simulated payment for a reviewed booking',
+  @ApiBody({
+    type: CreatePaymentDto,
+    examples: {
+      contract: {
+        summary: 'Record a simulated payment',
+        value: {
+          paymentMethod: 'Airtel Money',
+          paymentReference: 'MPAY-123456',
+        },
+      },
+    },
   })
-  createPayment(
+  recordContractPayment(
     @Param('reference') reference: string,
     @Req() req: any,
-    @Body(new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    }))
-    dto: CreatePaymentDto,
+    @Body() dto: CreatePaymentDto,
   ) {
-    return this.paymentsService.createPayment(
+    return this.paymentsService.recordContractPayment(
       reference,
       req.user.userId,
       dto,
@@ -69,10 +67,7 @@ export class PaymentsController {
     @Param('paymentId', ParseUUIDPipe) paymentId: string,
     @Req() req: any,
   ) {
-    return this.paymentsService.getPayment(
-      paymentId,
-      req.user,
-    );
+    return this.paymentsService.getPayment(paymentId, req.user);
   }
 
   @Post('payments/webhooks/:provider')
@@ -112,10 +107,6 @@ export class PaymentsController {
     @Headers('x-webhook-secret') secret: string,
     @Body() body: any,
   ) {
-    return this.paymentsService.handleWebhook(
-      provider,
-      secret,
-      body,
-    );
+    return this.paymentsService.handleWebhook(provider, secret, body);
   }
 }

@@ -9,7 +9,7 @@ import {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-    app.useGlobalFilters(new HttpErrorFilter());
+  app.useGlobalFilters(new HttpErrorFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({

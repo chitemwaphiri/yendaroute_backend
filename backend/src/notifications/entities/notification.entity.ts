@@ -29,6 +29,9 @@ export class Notification {
   @Column({ type: 'text' })
   message: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  category: string | null;
+
   @Column({ default: false })
   isRead: boolean;
 

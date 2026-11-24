@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Patch,
+  Delete,
+  HttpCode,
   Param,
   Query,
   Req,
@@ -21,13 +23,11 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('Notifications')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
-@Controller('me/notifications')
+@Controller('api/v1/notifications')
 export class NotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
-  @Get()
+  @Get('mine')
   @ApiOperation({ summary: 'Get passenger notifications' })
   @ApiQuery({ name: 'unreadOnly', required: false, type: Boolean })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -52,7 +52,7 @@ export class NotificationsController {
     return this.notificationsService.getUnreadCount(req.user.userId);
   }
 
-  @Patch(':notificationId')
+  @Patch(':notificationId/read')
   @ApiOperation({ summary: 'Mark a notification as read' })
   markAsRead(
     @Req() req: any,
@@ -62,5 +62,14 @@ export class NotificationsController {
       req.user.userId,
       notificationId,
     );
+  }
+
+  @Delete(':notificationId')
+  @HttpCode(204)
+  delete(
+    @Req() req: any,
+    @Param('notificationId', ParseUUIDPipe) notificationId: string,
+  ) {
+    return this.notificationsService.delete(req.user.userId, notificationId);
   }
 }

@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 
 import { Booking } from '../../bookings/entities/booking.entity';
+import { User } from '../../auth/entities/user.entity';
+import { decimalToNumber } from '../../common/decimal.transformer';
 
 export enum PaymentStatus {
   PENDING = 'pending',
@@ -34,6 +36,10 @@ export class Payment {
   @Column()
   bookingId: number;
 
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
   @Index()
   @Column()
   bookingReference: string;
@@ -41,7 +47,7 @@ export class Payment {
   @Column()
   userId: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2, transformer: decimalToNumber })
   amount: number;
 
   @Column({ default: 'MWK' })
@@ -65,6 +71,9 @@ export class Payment {
 
   @Column({ unique: true })
   transactionReference: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  paidAt: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;

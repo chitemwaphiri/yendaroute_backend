@@ -47,9 +47,8 @@ export class Booking {
   @OneToMany(() => BookingSeat, (s) => s.booking, { cascade: true, eager: true })
   seats: BookingSeat[];
 
-  // Old column from before multi-seat bookings. No longer used.
-  // Delete this line once the shared test data has been cleared.
-  @Column({ type: 'varchar', nullable: true }) seatNumber: string | null;
+  @Column({ type: 'varchar', nullable: true })
+  seatNumber: string | null;
 
   @ManyToOne(() => Stop, { eager: true }) @JoinColumn({ name: 'originStopId' })
   originStop: Stop;
@@ -65,7 +64,7 @@ export class Booking {
 
   @Column({ default: 'MWK' }) currency: string;
 
-  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.CONFIRMED })
+  @Column({ type: 'enum', enum: BookingStatus, default: BookingStatus.DRAFT })
   status: BookingStatus;
 
   @Column({ type: 'timestamptz', nullable: true }) holdExpiresAt: Date | null;

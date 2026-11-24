@@ -1,14 +1,17 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class UpdateFareDto {
+  @ApiPropertyOptional({ example: 75000 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  @Min(0)
+  @Min(0.01)
   amount?: number;
 
+  @ApiPropertyOptional({ example: 'MWK', enum: ['MWK'] })
   @IsOptional()
-  @IsString()
+  @IsIn(['MWK'])
   currency?: string;
 }

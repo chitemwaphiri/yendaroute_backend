@@ -28,6 +28,7 @@ export class UsersService {
         role: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
       order: { id: 'ASC' },
     });
@@ -44,13 +45,22 @@ export class UsersService {
         role: true,
         isActive: true,
         createdAt: true,
+        updatedAt: true,
       },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+    return {
+      id: String(user.id),
+      name: user.fullName,
+      email: user.email,
+      role: user.role === 'admin' ? 'admin' : 'passenger',
+      phoneNumber: user.phoneNumber,
+      createdAt: user.createdAt?.toISOString(),
+      updatedAt: user.updatedAt?.toISOString(),
+    };
   }
 
   private profileView(p: PassengerProfile) {
@@ -70,7 +80,7 @@ export class UsersService {
 
     const user = await this.findOne(userId);
     return {
-      name: user.fullName,
+      name: user.name,
       email: user.email,
       phone: user.phoneNumber ?? null,
       identificationNumber: null,

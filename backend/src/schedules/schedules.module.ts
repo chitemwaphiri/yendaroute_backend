@@ -8,11 +8,12 @@ import { Vehicle } from '../transport/entities/vehicle.entity';
 import { Stop } from '../stops/entities/stop.entity';
 import { Booking } from '../bookings/entities/booking.entity';
 import { Fare } from '../fares/entities/fare.entity';
+import { Operator } from '../transport/entities/operator.entity';
 import { AdminSchedulesController } from './admin-schedules.controller';
 import { FaresModule } from '../fares/fares.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Schedule, Route, Vehicle, Stop, Booking, Fare]), FaresModule],
+  imports: [TypeOrmModule.forFeature([Schedule, Route, Vehicle, Stop, Booking, Fare, Operator]), FaresModule],
   controllers: [SchedulesController, AdminSchedulesController],
   providers: [SchedulesService],
   exports: [SchedulesService, TypeOrmModule],

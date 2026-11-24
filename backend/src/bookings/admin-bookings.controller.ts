@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { BookingsService } from './bookings.service';
 import { QueryBookingsDto } from './dto/query-bookings.dto';
@@ -8,21 +8,14 @@ import { AdminGuard } from '../auth/guards/admin.guard';
 @ApiTags('Admin bookings')
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard, AdminGuard)
-@Controller('api/v1/admin/bookings')
+@Controller('api/v1')
 export class AdminBookingsController {
   constructor(private readonly svc: BookingsService) {}
 
-  @Get()
-  @ApiOperation({ summary: 'All bookings (admin), filter by status, schedule and date' })
+  @Get('bookings/admin/list')
+  @ApiOperation({ summary: 'Admin: list all bookings at the frontend contract path' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
   findAll(@Query() q: QueryBookingsDto) {
     return this.svc.findAllForAdmin(q);
-  }
-
-  @Get(':reference')
-  @ApiOperation({ summary: 'One booking by reference (admin), with the passenger account' })
-  @ApiResponse({ status: 404, description: 'Booking not found' })
-  findOne(@Param('reference') reference: string) {
-    return this.svc.findOneForAdmin(reference);
   }
 }

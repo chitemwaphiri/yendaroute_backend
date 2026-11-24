@@ -1,8 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Route } from '../../routes/entities/route.entity';
 import { Stop } from '../../stops/entities/stop.entity';
+import { decimalToNumber } from '../../common/decimal.transformer';
 
 @Entity('fares')
+@Index(['routeId', 'originStopId', 'destinationStopId'], { unique: true })
 export class Fare {
   @PrimaryGeneratedColumn() id: number;
 
@@ -18,7 +20,7 @@ export class Fare {
   destinationStop: Stop;
   @Column() destinationStopId: number;
 
-  @Column('decimal', { precision: 10, scale: 2 }) amount: number;
+  @Column('decimal', { precision: 10, scale: 2, transformer: decimalToNumber }) amount: number;
   
   @Column({ default: 'MWK' }) currency: string;
 }

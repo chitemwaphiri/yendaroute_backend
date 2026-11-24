@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Route } from './route.entity';
 import { Stop } from '../../stops/entities/stop.entity';
 
 @Entity('route_stops')
+@Index(['routeId', 'sequence'], { unique: true })
 export class RouteStop {
   @PrimaryGeneratedColumn() id: number;
 

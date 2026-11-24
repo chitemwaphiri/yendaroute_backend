@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
 
 export class PassengerDetailsDto {
   @ApiProperty({ example: 'Chikondi Banda' })
@@ -7,10 +7,9 @@ export class PassengerDetailsDto {
   @MinLength(2)
   passengerName: string;
 
-  @ApiPropertyOptional({ example: 'chikondi@example.mw' })
-  @IsOptional()
+  @ApiProperty({ example: 'jane@example.com' })
   @IsEmail()
-  passengerEmail?: string;
+  passengerEmail: string;
 
   @ApiProperty({ example: '+265991234567' })
   @Matches(/^\+?[0-9\s-]{7,20}$/, {
@@ -18,8 +17,7 @@ export class PassengerDetailsDto {
   })
   phoneNumber: string;
 
-  @ApiPropertyOptional({ example: 'ID-123456' })
-  @IsOptional()
+  @ApiProperty({ example: 'P123456' })
   @IsString()
-  identificationNumber?: string;
+  identificationNumber: string;
 }

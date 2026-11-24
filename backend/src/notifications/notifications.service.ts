@@ -24,6 +24,7 @@ export class NotificationsService {
       title,
       message,
       isRead: false,
+      category: title === 'Payment completed' ? 'Payment confirmation' : null,
     });
 
     return this.notificationsRepository.save(notification);
@@ -50,11 +51,17 @@ export class NotificationsService {
         take: safePageSize,
       });
 
+    const data = items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      message: item.message,
+      category: item.category ?? 'General',
+      read: item.isRead,
+      createdAt: item.createdAt,
+    }));
     return {
-      items,
-      page: safePage,
-      pageSize: safePageSize,
-      total,
+      data,
+      pagination: { page: safePage, limit: safePageSize, total },
     };
   }
 
@@ -74,7 +81,7 @@ export class NotificationsService {
   async markAsRead(
     userId: number,
     notificationId: string,
-  ): Promise<Notification> {
+  ) {
     const notification = await this.notificationsRepository.findOne({
       where: {
         id: notificationId,
@@ -88,6 +95,23 @@ export class NotificationsService {
 
     notification.isRead = true;
 
-    return this.notificationsRepository.save(notification);
+    const saved = await this.notificationsRepository.save(notification);
+    return {
+      id: saved.id,
+      title: saved.title,
+      message: saved.message,
+      category: saved.category ?? 'General',
+      read: saved.isRead,
+      createdAt: saved.createdAt,
+    };
+  }
+
+  async delete(userId: number, notificationId: string) {
+    const notification = await this.notificationsRepository.findOne({
+      where: { id: notificationId, userId },
+    });
+    if (!notification) throw new NotFoundException('Notification not found');
+    await this.notificationsRepository.remove(notification);
+    return undefined;
   }
 }

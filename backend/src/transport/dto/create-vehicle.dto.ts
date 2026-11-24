@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class CreateVehicleDto {
-  @ApiProperty({ example: 'LL-1234' }) @IsString() plateNumber: string;
-  @ApiProperty({ example: 'Minibus' }) @IsString() vehicleType: string;
-  @ApiProperty({ example: 15 }) @Type(() => Number) @IsInt() @Min(1) capacity: number;
-  @ApiPropertyOptional({ example: 'Toyota Hiace' }) @IsOptional() @IsString() description?: string;
-  @ApiPropertyOptional({ example: 2 }) @IsOptional() @Type(() => Number) @IsInt() driverId?: number;
+  @ApiProperty({ example: 'MOVA 1' }) @IsString() name: string;
+  @ApiProperty({ example: 'BA 1234' }) @IsString() registrationNumber: string;
+  @ApiProperty({ example: 'Bus' }) @IsString() type: string;
+  @ApiProperty({ example: 42 }) @Type(() => Number) @IsInt() @Min(1) @Max(42) seatCapacity: number;
+  @ApiPropertyOptional({ example: true }) @IsOptional() @IsBoolean() isActive?: boolean;
 }

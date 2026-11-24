@@ -89,7 +89,44 @@ export class FaresService {
   }
 
   async findByRoute(routeId: number) {
-    return this.fares.find({ where: { routeId } });
+    const fares = await this.fares.find({
+      where: { routeId },
+      relations: { originStop: true, destinationStop: true },
+    });
+    return fares.map((fare) => ({
+      id: String(fare.id),
+      routeId: String(fare.routeId),
+      originStopId: fare.originStopId,
+      destinationStopId: fare.destinationStopId,
+      amount: Number(fare.amount),
+      currency: fare.currency,
+    }));
+  }
+
+  async updateRouteFare(routeId: number, dto: UpdateFareDto) {
+    const route = await this.routes.findOne({ where: { id: routeId } });
+    if (!route) throw new NotFoundException('Route not found');
+    let fare = await this.fares.findOne({
+      where: {
+        routeId,
+        originStopId: route.originStopId,
+        destinationStopId: route.destinationStopId,
+      },
+    });
+    if (!fare) {
+      fare = this.fares.create({
+        routeId,
+        originStopId: route.originStopId,
+        destinationStopId: route.destinationStopId,
+        amount: dto.amount ?? 0,
+        currency: dto.currency ?? 'MWK',
+      });
+    } else {
+      if (dto.amount !== undefined) fare.amount = dto.amount;
+      if (dto.currency !== undefined) fare.currency = dto.currency;
+    }
+    if (Number(fare.amount) <= 0) throw new BadRequestException('Fare amount must be greater than zero');
+    return this.fares.save(fare);
   }
 
   async update(id: number, dto: UpdateFareDto) {
@@ -103,6 +140,6 @@ export class FaresService {
     const fare = await this.fares.findOne({ where: { id } });
     if (!fare) throw new NotFoundException('Fare not found');
     await this.fares.remove(fare);
-    return { deleted: true, id };
+    return undefined;
   }
 }

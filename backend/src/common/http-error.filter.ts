@@ -11,20 +11,6 @@ import {
 import { randomUUID } from 'crypto';
 import type { Request, Response } from 'express';
 
-const CODES: Record<number, string> = {
-  400: 'BAD_REQUEST',
-  401: 'UNAUTHORIZED',
-  403: 'FORBIDDEN',
-  404: 'NOT_FOUND',
-  409: 'CONFLICT',
-  422: 'UNPROCESSABLE_ENTITY',
-  429: 'TOO_MANY_REQUESTS',
-};
-
-/**
- * Every error leaves the API in one shape:
- * { error: { code, message, details?, requestId } }
- */
 @Catch()
 export class HttpErrorFilter implements ExceptionFilter {
   private readonly logger = new Logger('HttpErrorFilter');
@@ -37,7 +23,6 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Something went wrong. Please try again.';
-    let details: unknown;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -45,32 +30,40 @@ export class HttpErrorFilter implements ExceptionFilter {
       if (typeof body === 'string') {
         message = body;
       } else {
-        const b = body as { message?: string | string[]; details?: unknown };
-        if (Array.isArray(b.message)) {
-          message = 'Validation failed';
-          details = b.message;
-        } else {
-          message = b.message ?? exception.message;
+        const b = body as {
+          message?: string | string[];
+          details?: Record<string, string[]>;
+        };
+        message = Array.isArray(b.message)
+          ? b.message.join('; ')
+          : (b.message ?? exception.message);
+        // Include field-level validation details when present
+        if (b.details) {
+          message = `${message}: ${Object.entries(b.details)
+            .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+            .join('; ')}`;
         }
-        if (b.details) details = b.details;
       }
     } else {
-      // Unexpected error: log the real cause, but never show it to the app
       this.logger.error(
         `[${requestId}] ${req.method} ${req.url}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
     }
 
-    const code =
-      details && status === 400
-        ? 'VALIDATION_ERROR'
-        : (CODES[status] ?? (status >= 500 ? 'INTERNAL_ERROR' : 'ERROR'));
-
     res.setHeader('x-request-id', requestId);
     res.status(status).json({
-      error: { code, message, ...(details ? { details } : {}), requestId },
+      statusCode: status,
+      error: this.statusText(status),
+      message,
     });
+  }
+
+  private statusText(status: number) {
+    const words = HttpStatus[status]?.toLowerCase().replace(/_/g, ' ');
+    return words
+      ? words.replace(/\b\w/g, (letter) => letter.toUpperCase())
+      : 'Error';
   }
 }
 

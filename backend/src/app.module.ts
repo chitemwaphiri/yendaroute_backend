@@ -14,6 +14,7 @@ import { UsersModule } from './users/users.module';
 // Your Part 5 modules
 import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ContractSchemaBaseline1795400000000 } from './migrations/1795400000000-ContractSchemaBaseline';
 
 @Module({
   imports: [
@@ -35,8 +36,13 @@ import { NotificationsModule } from './notifications/notifications.module';
         // REMOVED SSL FOR LOCAL DOCKER
 
         autoLoadEntities: true,
-        synchronize: true, // Set to true so Docker builds the tables
+        synchronize: false,
         logging: ['error', 'warn'],
+        migrations: [
+          ContractSchemaBaseline1795400000000,
+        ],
+        migrationsRun: false,
+        migrationsTableName: 'migrations',
       }),
     }),
 

@@ -26,11 +26,12 @@ export class AuthService {
       fullName: dto.name || (dto as any).fullName, 
       email: dto.email, 
       phoneNumber: dto.phone || (dto as any).phoneNumber || null, 
+      role: UserRole.PASSENGER,
       passwordHash 
     });
     
     await this.users.save(user);
-    return this.sign(user);
+    return this.toUser(user);
   }
 
   async login(dto: LoginDto) {
@@ -58,7 +59,7 @@ export class AuthService {
 
   async logout(userId: number, token: string) {
     await this.blacklist.save(this.blacklist.create({ token }));
-    return { message: 'Logged out successfully' };
+    return undefined;
   }
 
   async isBlacklisted(token: string): Promise<boolean> {
@@ -74,7 +75,18 @@ export class AuthService {
     return { 
       accessToken, 
       refreshToken, 
-      user: { id: user.id, fullName: user.fullName, role: user.role } 
+      user: this.toUser(user)
+    };
+  }
+
+  private toUser(user: User) {
+    return {
+      id: String(user.id),
+      name: user.fullName,
+      email: user.email,
+      role: user.role === UserRole.ADMIN ? 'admin' : 'passenger',
+      createdAt: user.createdAt?.toISOString(),
+      updatedAt: user.updatedAt?.toISOString(),
     };
   }
 }
