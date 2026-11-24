@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   HttpCode,
   Param,
   ParseIntPipe,
@@ -41,7 +40,8 @@ export class BookingsController {
   @ApiHeader({
     name: 'Idempotency-Key',
     required: false,
-    description: 'Send the same value when retrying, so the booking is only made once',
+    description:
+      'Use the same key when retrying a booking to avoid creating duplicate bookings.',
   })
   @ApiResponse({ status: 201, description: 'Draft booking created, seats held' })
   @ApiResponse({ status: 400, description: 'Past date, trip does not run that day, seat or stop invalid, or no fare set' })
@@ -50,8 +50,9 @@ export class BookingsController {
   create(
     @Req() req: any,
     @Body() dto: CreateBookingDto,
-    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
+    const idempotencyKey = req.headers['idempotency-key'];
+
     return this.svc.create(req.user.userId, dto, idempotencyKey);
   }
 
@@ -64,15 +65,44 @@ export class BookingsController {
   // Keep this before bookings/:reference
   @UseGuards(DriverGuard)
   @Get('bookings/driver/:scheduleId')
-  @ApiOperation({ summary: 'Passenger list and count for a trip (driver only)' })
-  @ApiQuery({ name: 'travelDate', example: '2026-12-25' })
-  @ApiResponse({ status: 403, description: 'You are not the driver of this trip' })
+  @ApiOperation({
+    summary: 'Passenger manifest, vehicle and upcoming stops for a trip (driver only)',
+  })
+  @ApiQuery({
+    name: 'travelDate',
+    example: '2026-12-25',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'latitude',
+    required: false,
+    example: -13.9626,
+    description: 'Current GPS latitude of the driver',
+  })
+  @ApiQuery({
+    name: 'longitude',
+    required: false,
+    example: 33.7741,
+    description: 'Current GPS longitude of the driver',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'You are not the driver of this trip',
+  })
   getDriverManifest(
     @Param('scheduleId', ParseIntPipe) scheduleId: number,
     @Query('travelDate') travelDate: string,
+    @Query('latitude') latitude: string,
+    @Query('longitude') longitude: string,
     @Req() req: any,
   ) {
-    return this.svc.getDriverManifest(scheduleId, travelDate, req.user.userId);
+    return this.svc.getDriverManifest(
+      scheduleId,
+      travelDate,
+      req.user.userId,
+      latitude === undefined ? undefined : Number(latitude),
+      longitude === undefined ? undefined : Number(longitude),
+    );
   }
 
   @Get('bookings/:reference')
